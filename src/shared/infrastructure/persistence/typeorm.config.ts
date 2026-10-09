@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSource, DataSourceOptions } from 'typeorm';
@@ -6,6 +7,11 @@ import { AppConfig } from '../../../config/configuration';
 
 export function buildTypeOrmOptions(config: ConfigService<AppConfig, true>): TypeOrmModuleOptions {
   const db = config.get('database', { infer: true });
+  const isProduction = config.get('env', { infer: true }) === 'production';
+  const synchronize = db.synchronize && !isProduction;
+  if (db.synchronize && isProduction) {
+    new Logger('TypeORM').warn('DB_SYNCHRONIZE=true se ignora en producción: usa migraciones (DB_MIGRATIONS_RUN=true).');
+  }
   return {
     type: 'postgres',
     host: db.host,
@@ -15,8 +21,11 @@ export function buildTypeOrmOptions(config: ConfigService<AppConfig, true>): Typ
     password: db.pass,
     ssl: db.ssl ? { rejectUnauthorized: false } : false,
     autoLoadEntities: true,
-    // El esquema se gestiona con migraciones explícitas, nunca con synchronize.
-    synchronize: false,
+    // El esquema se gestiona con migraciones. DB_MIGRATIONS_RUN las aplica al arrancar;
+    // DB_SYNCHRONIZE sólo está permitido fuera de producción.
+    migrations: [__dirname + '/migrations/*.{ts,js}'],
+    migrationsRun: db.migrationsRun,
+    synchronize,
     logging: config.get('env', { infer: true }) === 'development' ? ['error', 'warn'] : ['error'],
   };
 }

@@ -17,6 +17,8 @@ export interface AppConfig {
     user: string;
     pass: string;
     ssl: boolean;
+    migrationsRun: boolean;
+    synchronize: boolean;
   };
   jwt: { secret: string; expiresIn: string };
   mail: {
@@ -48,6 +50,8 @@ export default (): AppConfig => ({
     user: process.env.DB_USER ?? 'postgres',
     pass: process.env.DB_PASS ?? '',
     ssl: process.env.DB_SSL === 'true',
+    migrationsRun: process.env.DB_MIGRATIONS_RUN === 'true',
+    synchronize: process.env.DB_SYNCHRONIZE === 'true',
   },
   jwt: {
     secret: process.env.JWT_SECRET ?? 'dev-secret-change-me-please',

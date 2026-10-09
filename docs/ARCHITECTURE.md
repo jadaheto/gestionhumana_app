@@ -59,7 +59,7 @@ Cuerpo de respuesta uniforme: `{ statusCode, code, message }`. La validación de
 - Nunca confíes en `userId` del cuerpo para operaciones del propio usuario: usa `actor.id`. El admin sí puede actuar sobre otros usuarios.
 
 ## 5. Persistencia
-- PostgreSQL con TypeORM, `synchronize: false`. El esquema se gestiona con migraciones en `shared/infrastructure/persistence/migrations/`.
+- PostgreSQL con TypeORM. El esquema se gestiona con migraciones en `shared/infrastructure/persistence/migrations/`; `DB_MIGRATIONS_RUN=true` las aplica al arrancar y `DB_SYNCHRONIZE=true` (sólo desarrollo, ignorado en producción) activa `synchronize`.
 - La migración `BaselineSchema` ejecuta `database/001_schema_base.sql` (esquema heredado) y `002_schema_runtime.sql` (DDL que el legado creaba en caliente). **Cualquier cambio de esquema nuevo** va en una migración TypeORM nueva (`<timestamp>-<Nombre>.ts`).
 - Entidades ORM: `snake_case` igual que las columnas reales; se mapean a entidades de dominio en `camelCase` mediante mappers. Las tablas centrales (`users`, `sedes`, `areas`, `cargos`, `app_settings`) viven en `shared/infrastructure/persistence/orm/` y pueden ser usadas por cualquier módulo en su capa de infraestructura. Las demás tablas pertenecen al módulo que las gestiona.
 - Consultas complejas (joins, agregaciones): usa `QueryBuilder` o SQL parametrizado (`dataSource.query(sql, [params])`). Nunca concatenes entrada del usuario en SQL.

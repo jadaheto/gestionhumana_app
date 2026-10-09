@@ -16,6 +16,10 @@ export const envValidationSchema = Joi.object({
   DB_USER: Joi.string().required(),
   DB_PASS: Joi.string().allow('').default(''),
   DB_SSL: Joi.boolean().default(false),
+  // Ejecuta las migraciones pendientes al arrancar la API.
+  DB_MIGRATIONS_RUN: Joi.boolean().default(false),
+  // synchronize de TypeORM (crea/altera tablas desde las entidades). SOLO desarrollo; se ignora en producción.
+  DB_SYNCHRONIZE: Joi.boolean().default(false),
 
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_EXPIRES_IN: Joi.string().default('8h'),
