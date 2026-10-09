@@ -1,0 +1,178 @@
+import { InvalidOperationError, ValidationError } from '../../../shared/domain/domain-error';
+import { parseIsoDate } from './dias-habiles.calculator';
+
+/** Tipos de solicitud permitidos (mismos valores que el legado). */
+export const TIPOS_PERMISO = [
+  'personal',
+  'medico',
+  'calamidad',
+  'diligencia',
+  'estudio',
+  'otro',
+  'vacaciones',
+  'incapacidad',
+] as const;
+export type TipoPermiso = (typeof TIPOS_PERMISO)[number];
+
+export const ESTADOS_PERMISO = ['pendiente', 'aprobado', 'rechazado'] as const;
+export type EstadoPermiso = (typeof ESTADOS_PERMISO)[number];
+
+export function isTipoPermiso(value: unknown): value is TipoPermiso {
+  return typeof value === 'string' && (TIPOS_PERMISO as readonly string[]).includes(value);
+}
+
+export interface PermisoProps {
+  id: number | null;
+  userId: number;
+  tipoPermiso: TipoPermiso;
+  /** `YYYY-MM-DD` */
+  fechaSolicitud: string | null;
+  /** `YYYY-MM-DD HH:mm:ss` (la tabla usa TIMESTAMP) */
+  fechaInicio: string;
+  fechaFin: string;
+  horas: number | null;
+  justificacion: string;
+  /** Ruta relativa del archivo en `uploads/` (p. ej. `soportes/abc.pdf`). */
+  archivoSoporte: string | null;
+  estado: EstadoPermiso;
+  aprobadoPor: number | null;
+  observacionRespuesta: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export type NuevoPermisoProps = Pick<PermisoProps, 'userId' | 'justificacion'> & {
+  tipoPermiso: string;
+  fechaInicio: string;
+  fechaFin: string;
+  horas?: number | null;
+  archivoSoporte?: string | null;
+  fechaSolicitud?: string | null;
+};
+
+/**
+ * Solicitud de permiso / vacaciones / incapacidad (tabla `permisos`).
+ * Reglas migradas de `Solicitudes::guardar`, `aprobar` y `rechazar`.
+ */
+export class Permiso {
+  private constructor(readonly props: PermisoProps) {}
+
+  /** Crea una solicitud nueva en estado `pendiente` validando las reglas del legado. */
+  static create(props: NuevoPermisoProps): Permiso {
+    if (!isTipoPermiso(props.tipoPermiso)) {
+      throw new ValidationError('Tipo de solicitud inválido.');
+    }
+    const inicio = normalizarFechaHora(props.fechaInicio);
+    const fin = normalizarFechaHora(props.fechaFin);
+    if (inicio === null || fin === null || fin < inicio) {
+      throw new ValidationError('Las fechas de la solicitud no son válidas.');
+    }
+    const justificacion = (props.justificacion ?? '').trim();
+    if (justificacion === '') {
+      throw new ValidationError('La justificación es obligatoria.');
+    }
+    const archivo = props.archivoSoporte?.trim() || null;
+    if (props.tipoPermiso === 'incapacidad' && !archivo) {
+      throw new ValidationError('Para incapacidad debes adjuntar archivo soporte.');
+    }
+    const sinHoras = props.tipoPermiso === 'vacaciones' || props.tipoPermiso === 'incapacidad';
+    let horas: number | null = null;
+    if (!sinHoras && props.horas !== null && props.horas !== undefined) {
+      if (!Number.isFinite(props.horas) || props.horas < 0) {
+        throw new ValidationError('Las horas deben ser un número mayor o igual a 0.');
+      }
+      horas = props.horas;
+    }
+    return new Permiso({
+      id: null,
+      userId: props.userId,
+      tipoPermiso: props.tipoPermiso,
+      fechaSolicitud: props.fechaSolicitud ?? null,
+      fechaInicio: inicio,
+      fechaFin: fin,
+      horas,
+      justificacion,
+      archivoSoporte: archivo,
+      estado: 'pendiente',
+      aprobadoPor: null,
+      observacionRespuesta: null,
+      createdAt: null,
+      updatedAt: null,
+    });
+  }
+
+  /** Reconstituye desde persistencia sin volver a validar. */
+  static rehydrate(props: PermisoProps): Permiso {
+    return new Permiso(props);
+  }
+
+  get id(): number | null {
+    return this.props.id;
+  }
+  get userId(): number {
+    return this.props.userId;
+  }
+  get estado(): EstadoPermiso {
+    return this.props.estado;
+  }
+  get tipoPermiso(): TipoPermiso {
+    return this.props.tipoPermiso;
+  }
+  get esVacaciones(): boolean {
+    return this.props.tipoPermiso === 'vacaciones';
+  }
+  get estaPendiente(): boolean {
+    return this.props.estado === 'pendiente';
+  }
+  /** Parte de fecha (`YYYY-MM-DD`) de la fecha de inicio. */
+  get fechaInicioDia(): string {
+    return this.props.fechaInicio.slice(0, 10);
+  }
+  get fechaFinDia(): string {
+    return this.props.fechaFin.slice(0, 10);
+  }
+
+  withId(id: number): Permiso {
+    return new Permiso({ ...this.props, id });
+  }
+
+  /** Marca como aprobada. Sólo las pendientes pueden procesarse. */
+  aprobar(adminId: number, observacion: string | null, ahora: string): Permiso {
+    return this.resolver('aprobado', adminId, observacion, ahora);
+  }
+
+  /** Marca como rechazada. Sólo las pendientes pueden procesarse. */
+  rechazar(adminId: number, observacion: string | null, ahora: string): Permiso {
+    return this.resolver('rechazado', adminId, observacion, ahora);
+  }
+
+  private resolver(estado: EstadoPermiso, adminId: number, observacion: string | null, ahora: string): Permiso {
+    if (!this.estaPendiente) {
+      throw new InvalidOperationError('La solicitud ya fue procesada.');
+    }
+    return new Permiso({
+      ...this.props,
+      estado,
+      aprobadoPor: adminId,
+      observacionRespuesta: observacion?.trim() || null,
+      updatedAt: ahora,
+    });
+  }
+}
+
+/**
+ * Normaliza una fecha u hora de entrada a `YYYY-MM-DD HH:mm:ss`.
+ * Acepta `YYYY-MM-DD`, `YYYY-MM-DDTHH:mm`, `YYYY-MM-DDTHH:mm:ss` y `YYYY-MM-DD HH:mm:ss`.
+ * Devuelve null si no es válida.
+ */
+export function normalizarFechaHora(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const v = String(value).trim();
+  const m = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/.exec(v);
+  if (!m || parseIsoDate(m[1]) === null) return null;
+  const hh = m[2] ?? '00';
+  const mi = m[3] ?? '00';
+  const ss = m[4] ?? '00';
+  if (Number(hh) > 23 || Number(mi) > 59 || Number(ss) > 59) return null;
+  return `${m[1]} ${hh}:${mi}:${ss}`;
+}

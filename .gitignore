@@ -1,0 +1,24 @@
+# Dependencias y compilados
+/node_modules
+/dist
+/coverage
+*.tsbuildinfo
+
+# Entorno y datos locales
+.env
+.env.local
+.env.*.local
+/uploads
+
+# Documentación generada
+/docs/compodoc
+
+# Logs y temporales
+/logs
+*.log
+npm-debug.log*
+.DS_Store
+
+# IDE
+/.idea
+/.vscode
