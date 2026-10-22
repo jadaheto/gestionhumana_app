@@ -1,9 +1,14 @@
-import { Body, Controller, Get, HttpCode, Ip, Param, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Ip, Param, Post, Put, Query, Req, Res } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import { AppConfig } from '../../../../config/configuration';
 import type { Actor } from '../../../../shared/domain/actor';
 import { CurrentUser } from '../../../../shared/infrastructure/http/decorators/current-user.decorator';
+import { DomainError } from '../../../../shared/domain/domain-error';
 import { Public } from '../../../../shared/infrastructure/http/decorators/public.decorator';
+import { GoogleIdentityProvider } from '../../application/google-identity.port';
+import { GoogleLoginUseCase } from '../../application/use-cases/google-login.use-case';
 import { GetCurrentUserUseCase } from '../../application/use-cases/get-current-user.use-case';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
 import { RequestPasswordResetUseCase } from '../../application/use-cases/request-password-reset.use-case';
@@ -32,7 +37,62 @@ export class AuthController {
     private readonly getPrefs: GetUiPreferencesUseCase,
     private readonly savePrefs: SaveUiPreferencesUseCase,
     private readonly me: GetCurrentUserUseCase,
+    private readonly googleLogin: GoogleLoginUseCase,
+    private readonly google: GoogleIdentityProvider,
+    private readonly config: ConfigService<AppConfig, true>,
   ) {}
+
+  @Public()
+  @Get('google/estado')
+  @ApiOperation({ summary: '¿Está habilitado el ingreso con Google?' })
+  googleStatus(): { habilitado: boolean } {
+    return { habilitado: this.google.isEnabled() };
+  }
+
+  @Public()
+  @Get('google')
+  @ApiOperation({ summary: 'Redirige a Google para iniciar sesión (solo correos registrados)' })
+  async googleStart(@Res() res: Response, @Query('returnUrl') returnUrl?: string): Promise<void> {
+    try {
+      res.redirect(await this.google.authorizationUrl(returnUrl));
+    } catch (e) {
+      this.redirectWithError(res, e instanceof DomainError ? e.message : 'No fue posible iniciar sesión con Google.');
+    }
+  }
+
+  @Public()
+  @Get('google/callback')
+  @ApiOperation({ summary: 'Retorno de Google: valida la cuenta contra Usuarios y entrega la sesión al frontend' })
+  async googleCallback(
+    @Res() res: Response,
+    @Req() req: Request,
+    @Ip() ip: string,
+    @Query('code') code?: string,
+    @Query('state') state?: string,
+    @Query('error') error?: string,
+  ): Promise<void> {
+    if (error || !code || !state) {
+      return this.redirectWithError(
+        res,
+        error === 'access_denied'
+          ? 'Cancelaste el ingreso con Google.'
+          : 'Google no devolvió un código de ingreso válido.',
+      );
+    }
+    try {
+      const { returnUrl } = await this.google.readState(state);
+      const profile = await this.google.profileFromCode(code);
+      const session = await this.googleLogin.execute({
+        profile,
+        device: (req.headers['user-agent'] ?? 'Desconocido').toString().slice(0, 255),
+        ipAddress: ip,
+      });
+      const q = new URLSearchParams({ token: session.accessToken, returnUrl });
+      res.redirect(`${this.config.get('frontendUrl', { infer: true })}/auth/google?${q.toString()}`);
+    } catch (e) {
+      this.redirectWithError(res, e instanceof DomainError ? e.message : 'No fue posible iniciar sesión con Google.');
+    }
+  }
 
   @Public()
   @Post('login')
@@ -96,5 +156,9 @@ export class AuthController {
     @Body() dto: UiPreferencesRequestDto,
   ): Promise<Record<string, string>> {
     return this.savePrefs.execute({ actor, preferences: dto.preferences });
+  }
+
+  private redirectWithError(res: Response, message: string): void {
+    res.redirect(`${this.config.get('frontendUrl', { infer: true })}/auth/login?error=${encodeURIComponent(message)}`);
   }
 }

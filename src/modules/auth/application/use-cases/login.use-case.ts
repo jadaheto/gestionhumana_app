@@ -31,40 +31,60 @@ export class LoginUseCase implements UseCase<LoginInput, LoginOutput> {
     const ok = await this.hasher.compare(input.password, user.passwordHash);
     if (!ok) throw new UnauthorizedError(INVALID_CREDENTIALS_MESSAGE);
 
-    const hasContract = user.isAdmin ? true : await this.contracts.hasActiveContract(user.id);
-    if (!user.isAdmin && !user.isRetirado) {
-      const expected = user.expectedEstado(hasContract);
-      if (user.estadoColaborador !== expected) {
-        await this.users.updateEstadoColaborador(user.id, expected);
-      }
-    }
-    if (!user.canAccessPlatform(hasContract)) {
-      throw new UnauthorizedError(INACTIVE_USER_MESSAGE);
-    }
-
-    await this.history.record({
-      userId: user.id,
-      device: input.device,
-      location: 'Unknown',
-      ipAddress: input.ipAddress,
-    });
-
-    const actor = toActor(user);
-    const accessToken = await this.tokens.issue(actor);
-    return {
-      accessToken,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        profileImage: user.profileImage,
-        uiPreferences: user.uiPreferences,
-      },
-    };
+    const { users, contracts, history, tokens } = this;
+    return startSession(user, input, { users, contracts, history, tokens });
   }
+}
+
+/** Dependencias para abrir la sesión de un usuario ya identificado. */
+export interface SessionDeps {
+  users: AuthUserRepository;
+  contracts: ActiveContractChecker;
+  history: LoginHistoryRepository;
+  tokens: TokenIssuer;
+}
+
+/**
+ * Reglas comunes a todo método de ingreso: sincroniza `estado_colaborador` con
+ * la vigencia del contrato, valida el acceso, registra el historial y emite el token.
+ */
+export async function startSession(
+  user: AuthUser,
+  ctx: { device: string; ipAddress: string },
+  deps: SessionDeps,
+): Promise<LoginOutput> {
+  const hasContract = user.isAdmin ? true : await deps.contracts.hasActiveContract(user.id);
+  if (!user.isAdmin && !user.isRetirado) {
+    const expected = user.expectedEstado(hasContract);
+    if (user.estadoColaborador !== expected) {
+      await deps.users.updateEstadoColaborador(user.id, expected);
+    }
+  }
+  if (!user.canAccessPlatform(hasContract)) {
+    throw new UnauthorizedError(INACTIVE_USER_MESSAGE);
+  }
+
+  await deps.history.record({
+    userId: user.id,
+    device: ctx.device,
+    location: 'Unknown',
+    ipAddress: ctx.ipAddress,
+  });
+
+  const accessToken = await deps.tokens.issue(toActor(user));
+  return {
+    accessToken,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      profileImage: user.profileImage,
+      uiPreferences: user.uiPreferences,
+    },
+  };
 }
 
 export function toActor(user: AuthUser): Actor {

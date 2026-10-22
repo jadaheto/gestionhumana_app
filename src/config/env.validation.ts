@@ -36,6 +36,11 @@ export const envValidationSchema = Joi.object({
   COMUNICADOS_MAIL_TEST_TO: Joi.string().allow('').default(''),
   COMUNICADOS_MAIL_PROD_TO: Joi.string().allow('').default(''),
 
+  GOOGLE_CLIENT_ID: Joi.string().allow('').default(''),
+  GOOGLE_CLIENT_SECRET: Joi.string().allow('').default(''),
+  GOOGLE_CALLBACK_URL: Joi.string().uri().allow('').default(''),
+  GOOGLE_WORKSPACE_DOMAIN: Joi.string().allow('').default(''),
+
   UPLOADS_DIR: Joi.string().default('./uploads'),
   FRONTEND_URL: Joi.string().default('http://localhost:4200'),
 });

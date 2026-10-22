@@ -4,6 +4,7 @@ import { AuthUserRepository } from '../../../domain/auth-user.repository';
 import { LoginHistoryEntry, LoginHistoryRepository } from '../../../domain/login-history.repository';
 import { PasswordReset } from '../../../domain/password-reset';
 import { PasswordResetRepository } from '../../../domain/password-reset.repository';
+import { GoogleIdentityProvider, GoogleProfile } from '../../google-identity.port';
 import { TokenIssuer } from '../../token-issuer.port';
 import { Actor } from '../../../../../shared/domain/actor';
 
@@ -96,5 +97,26 @@ export class StubContractChecker extends ActiveContractChecker {
 export class StubTokenIssuer extends TokenIssuer {
   issue(actor: Actor): Promise<string> {
     return Promise.resolve(`jwt-for-${actor.id}`);
+  }
+}
+
+export class StubGoogleIdentityProvider extends GoogleIdentityProvider {
+  constructor(private readonly domain = '') {
+    super();
+  }
+  isEnabled(): boolean {
+    return true;
+  }
+  workspaceDomain(): string {
+    return this.domain;
+  }
+  authorizationUrl(): Promise<string> {
+    return Promise.resolve('https://accounts.google.com/o/oauth2/v2/auth');
+  }
+  readState(): Promise<{ returnUrl: string }> {
+    return Promise.resolve({ returnUrl: '/dashboard' });
+  }
+  profileFromCode(): Promise<GoogleProfile> {
+    return Promise.resolve({ email: 'jperez@comfasucre.com.co', emailVerified: true, name: 'Juan Pérez' });
   }
 }

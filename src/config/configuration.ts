@@ -31,6 +31,15 @@ export interface AppConfig {
     fromName: string;
   };
   comunicados: { mailMode: 'test' | 'produccion'; testTo: string; prodTo: string };
+  /** Ingreso con Google (OAuth 2.0). Solo entran correos ya registrados en `users`. */
+  google: {
+    clientId: string;
+    clientSecret: string;
+    /** URL de retorno registrada en Google Cloud (debe llegar al API). */
+    callbackUrl: string;
+    /** Dominio de Google Workspace permitido (vacío = cualquier cuenta registrada). */
+    workspaceDomain: string;
+  };
 }
 
 export default (): AppConfig => ({
@@ -70,5 +79,11 @@ export default (): AppConfig => ({
     mailMode: (process.env.COMUNICADOS_MAIL_MODE as 'test' | 'produccion') ?? 'test',
     testTo: process.env.COMUNICADOS_MAIL_TEST_TO ?? '',
     prodTo: process.env.COMUNICADOS_MAIL_PROD_TO ?? '',
+  },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL ?? '',
+    workspaceDomain: (process.env.GOOGLE_WORKSPACE_DOMAIN ?? '').trim().toLowerCase(),
   },
 });
