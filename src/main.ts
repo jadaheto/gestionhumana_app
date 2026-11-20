@@ -7,9 +7,12 @@ import helmet from 'helmet';
 import * as path from 'node:path';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
+import { logAppStart, securityLogMiddleware } from './shared/infrastructure/security-log/security-log';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Registro de eventos de seguridad (tools/Seguridad/directrices-logs.md). Sin LOGS_DB_* queda apagado.
+  app.use(securityLogMiddleware({ table: 'gestion_humana', service: 'gestion-humana-backend' }));
   const config = app.get(ConfigService<AppConfig, true>);
   const prefix = config.get('apiPrefix', { infer: true });
 
@@ -33,6 +36,7 @@ async function bootstrap() {
 
   const port = config.get('port', { infer: true });
   await app.listen(port);
+  logAppStart();
   Logger.log(`API en http://localhost:${port}/${prefix} — docs en /${prefix}/docs`, 'Bootstrap');
 }
 void bootstrap();

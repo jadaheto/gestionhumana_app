@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    // security-log.ts es la copia sin cambios de tools/Seguridad/plantillas (misma en todos los backends).
+    ignores: ['eslint.config.mjs', 'src/shared/infrastructure/security-log/security-log.ts'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
