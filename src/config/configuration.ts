@@ -40,6 +40,8 @@ export interface AppConfig {
     /** Dominio de Google Workspace permitido (vacío = cualquier cuenta registrada). */
     workspaceDomain: string;
   };
+  /** Asistente IA "Ask AI": proveedor compatible con OpenAI (DeepSeek). Sin clave el asistente responde 503. */
+  asistente: { apiKey: string; model: string; baseUrl: string; timeoutMs: number };
 }
 
 export default (): AppConfig => ({
@@ -85,5 +87,11 @@ export default (): AppConfig => ({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
     callbackUrl: process.env.GOOGLE_CALLBACK_URL ?? '',
     workspaceDomain: (process.env.GOOGLE_WORKSPACE_DOMAIN ?? '').trim().toLowerCase(),
+  },
+  asistente: {
+    apiKey: process.env.DEEPSEEK_API_KEY ?? '',
+    model: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
+    baseUrl: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com',
+    timeoutMs: Number(process.env.DEEPSEEK_TIMEOUT_MS ?? 30000),
   },
 });

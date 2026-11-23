@@ -39,7 +39,7 @@ export class RequestPasswordResetUseCase implements UseCase<RequestPasswordReset
       html: `
         <p>Hola <strong>${escapeHtml(user.firstName)}</strong>,</p>
         <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el siguiente botón:</p>
-        <p><a href="${link}" style="background:#405189;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;">Restablecer mi contraseña</a></p>
+        <p><a href="${link}" style="background:#17365d;color:#fff;padding:10px 20px;text-decoration:none;border-radius:8px;font-weight:600;">Restablecer mi contraseña</a></p>
         <p>Este enlace vence en <strong>1 hora</strong>.</p>
         <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
         <br><p>&mdash; Equipo Comfasucre</p>`,

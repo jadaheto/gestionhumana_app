@@ -32,6 +32,10 @@ async function bootstrap() {
     .build();
   SwaggerModule.setup(`${prefix}/docs`, app, SwaggerModule.createDocument(app, swagger), {
     jsonDocumentUrl: `${prefix}/docs-json`,
+    // Imagen Comfasucre (perfil administrativo): barra y títulos en el azul institucional.
+    customSiteTitle: 'Gestión Humana · API Comfasucre',
+    customCss:
+      '.swagger-ui .topbar{background:#17365d}.swagger-ui .info .title{color:#17365d}.swagger-ui .btn.authorize{color:#205b88;border-color:#205b88}.swagger-ui .btn.authorize svg{fill:#205b88}',
   });
 
   const port = config.get('port', { infer: true });

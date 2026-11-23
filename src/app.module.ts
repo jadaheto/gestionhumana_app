@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration, { AppConfig } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
+import { AsistenteModule } from './modules/asistente/asistente.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BeneficiosModule } from './modules/beneficios/beneficios.module';
 import { ColaboracionModule } from './modules/colaboracion/colaboracion.module';
@@ -56,6 +57,7 @@ import { SharedModule } from './shared/infrastructure/shared.module';
     EndeudamientoModule,
     DashboardModule,
     ColaboracionModule,
+    AsistenteModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

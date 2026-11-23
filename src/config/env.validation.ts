@@ -41,6 +41,11 @@ export const envValidationSchema = Joi.object({
   GOOGLE_CALLBACK_URL: Joi.string().uri().allow('').default(''),
   GOOGLE_WORKSPACE_DOMAIN: Joi.string().allow('').default(''),
 
+  DEEPSEEK_API_KEY: Joi.string().allow('').default(''),
+  DEEPSEEK_MODEL: Joi.string().default('deepseek-chat'),
+  DEEPSEEK_BASE_URL: Joi.string().uri().default('https://api.deepseek.com'),
+  DEEPSEEK_TIMEOUT_MS: Joi.number().default(30000),
+
   UPLOADS_DIR: Joi.string().default('./uploads'),
   FRONTEND_URL: Joi.string().default('http://localhost:4200'),
 });

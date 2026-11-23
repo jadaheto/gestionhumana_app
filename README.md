@@ -33,6 +33,35 @@ test/                       e2e
 ## Variables de entorno
 Ver `.env.example`. Obligatorias: `DB_*`, `JWT_SECRET` (≥16 caracteres). SMTP opcional (si no hay host, los correos se registran en el log y se omiten).
 
+### Asistente IA "Ask AI"
+
+Chat para administradores (botón **Ask AI** de la barra superior) que responde preguntas sobre los datos
+consultando la base con herramientas de **solo lectura**. Módulo `src/modules/asistente`.
+
+| Variable | Valor por defecto | Descripción |
+|---|---|---|
+| `DEEPSEEK_API_KEY` | *(vacía)* | Clave del proveedor. Vacía ⇒ `POST /asistente/preguntar` responde 503. |
+| `DEEPSEEK_MODEL` | `deepseek-chat` | Modelo (cualquier proveedor compatible con OpenAI). |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | URL base del proveedor. |
+| `DEEPSEEK_TIMEOUT_MS` | `30000` | Tiempo de espera por defecto por llamada. |
+
+| Endpoint | Descripción |
+|---|---|
+| `GET /asistente/estado` | `{ ok, configurado, modelo }` |
+| `POST /asistente/preguntar` | `{ pregunta, historial?, conversacion? }` → `{ ok, respuesta (Markdown), herramientas[], uso }`. 400 pregunta inválida, 429 más de 30/min, 502 si el modelo falla, 503 sin clave. |
+
+Seguridad:
+
+- Solo rol `admin`. El asistente **no puede escribir**: herramientas de consulta parametrizadas y `consulta_sql`
+  (un único `SELECT` validado, en transacción `READ ONLY` con `statement_timeout` de 6 s y máximo 200 filas).
+- Lista blanca de tablas en `domain/validador-sql.ts`. Las personas se leen por la vista `colaboradores`
+  (sin contraseña ni datos de acceso); nunca por `users`. Quedan fuera cuentas bancarias, desprendibles de
+  nómina, endeudamiento, familiares, chat y correo interno.
+- Los datos consultados se envían al proveedor del modelo para redactar la respuesta: usa una clave de una
+  cuenta autorizada por la Caja para tratar datos de personal.
+- Cada pregunta se audita en `assistant_messages` (usuario, respuesta, SQL generado, herramientas, tokens).
+- Requiere la migración `1795500000000-AsistenteIa` (`npm run migration:run`).
+
 ### Esquema de base de datos
 - `DB_MIGRATIONS_RUN=true`: la API ejecuta las migraciones pendientes al arrancar (equivale a `npm run migration:run`). Recomendado en despliegues.
 - `DB_SYNCHRONIZE=true`: `synchronize` de TypeORM, crea/altera tablas a partir de las entidades. Sólo para desarrollo; en `NODE_ENV=production` se ignora con un aviso, porque puede eliminar columnas con datos.
