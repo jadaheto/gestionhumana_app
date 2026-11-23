@@ -1,8 +1,7 @@
-import { AniversarioRow, CumpleaneroRow, DistribucionRow, TopPuntoRow } from '../../domain/dashboard-queries.port';
+import { AniversarioRow, CumpleaneroRow, DistribucionRow } from '../../domain/dashboard-queries.port';
 
 export type CumpleaneroDto = CumpleaneroRow;
 export type AniversarioDto = AniversarioRow;
-export type TopPuntoDto = TopPuntoRow;
 export type DistribucionDto = DistribucionRow;
 
 export interface ContratoPorVencerDto {
@@ -27,7 +26,6 @@ export interface DashboardAdminDto {
     permisosPendientes: number;
   };
   contratosPorVencer: ContratoPorVencerDto[];
-  topPuntos: TopPuntoDto[];
   porArea: DistribucionDto[];
   porSede: DistribucionDto[];
   cumpleaneros: CumpleaneroDto[];

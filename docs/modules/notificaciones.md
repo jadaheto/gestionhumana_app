@@ -3,7 +3,7 @@
 Migra `controllers/Notificaciones.php`, `models/Notificacion_model.php` y el consumo desde `views/partials/topbar.php` + `public/assets/js/pages/topbar-notifications.init.js`.
 
 ## Propósito
-Bandeja de notificaciones internas del usuario: la campana del topbar (contador + últimas pendientes) y la página de lista. Otros contextos (puntos, solicitudes, comunicados, contratos) **insertan** notificaciones; este módulo sólo las consulta y actualiza.
+Bandeja de notificaciones internas del usuario: la campana del topbar (contador + últimas pendientes) y la página de lista. Otros contextos (solicitudes, comunicados, contratos) **insertan** notificaciones; este módulo sólo las consulta y actualiza.
 
 ## Reglas de negocio migradas
 | Regla | Origen legado | Implementación |
@@ -15,7 +15,7 @@ Bandeja de notificaciones internas del usuario: la campana del topbar (contador 
 
 ### Añadidos
 - `DELETE /notificaciones/:id` (eliminar propia).
-- `CrearNotificacionUseCase` y `NotificacionRepository` se **exportan** del módulo por si otro contexto prefiere inyectarlos en lugar de insertar por SQL (no es obligatorio; `puntos` inserta con SQL parametrizado mediante su propio puerto).
+- `CrearNotificacionUseCase` y `NotificacionRepository` se **exportan** del módulo por si otro contexto prefiere inyectarlos en lugar de insertar por SQL (no es obligatorio).
 
 ## Endpoints (`/api/v1/notificaciones`, todos para el usuario autenticado)
 | Método | Ruta | Descripción |

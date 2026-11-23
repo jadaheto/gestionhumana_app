@@ -19,12 +19,3 @@ export abstract class UsuarioRepository {
   abstract updatePasswordHash(id: number, passwordHash: string): Promise<void>;
   abstract delete(id: number): Promise<void>;
 }
-
-/**
- * Puerto hacia el contexto de Puntos: el legado creaba la fila `puntos`
- * (saldo 0) al crear un usuario. Se declara aquí para no depender del módulo
- * de puntos.
- */
-export abstract class PuntosInicializador {
-  abstract inicializar(userId: number): Promise<void>;
-}

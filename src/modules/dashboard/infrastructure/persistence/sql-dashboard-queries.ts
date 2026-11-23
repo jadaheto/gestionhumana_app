@@ -8,7 +8,6 @@ import {
   DashboardQueries,
   DistribucionRow,
   PerfilRow,
-  TopPuntoRow,
   VacacionAprobadaRow,
 } from '../../domain/dashboard-queries.port';
 
@@ -78,25 +77,6 @@ export class SqlDashboardQueries extends DashboardQueries {
       tipoContrato: String(r['tipo_contrato'] ?? ''),
       numeroContrato: String(r['numero_contrato'] ?? ''),
       fechaFin: String(r['fecha_fin']),
-    }));
-  }
-
-  async topPuntos(limite: number): Promise<TopPuntoRow[]> {
-    const rows: Row[] = await this.dataSource.query(
-      `SELECT p.user_id, p.puntos_actuales, p.puntos_totales_ganados, u.first_name, u.last_name, u.profile_image
-         FROM puntos p
-         JOIN users u ON u.id = p.user_id
-        WHERE u.estado_colaborador = 'activo'
-        ORDER BY p.puntos_actuales DESC
-        LIMIT $1`,
-      [limite],
-    );
-    return rows.map((r) => ({
-      userId: num(r['user_id']),
-      nombre: nombre(r),
-      profileImage: str(r['profile_image']),
-      puntosActuales: num(r['puntos_actuales']),
-      puntosTotalesGanados: num(r['puntos_totales_ganados']),
     }));
   }
 

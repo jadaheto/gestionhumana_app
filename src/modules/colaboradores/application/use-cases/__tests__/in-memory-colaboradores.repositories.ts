@@ -33,7 +33,6 @@ import {
   ContratoActivoReader,
   LoginHistoryItem,
   LoginHistoryReader,
-  PuntosInitializer,
 } from '../../../domain/ports';
 
 export class InMemoryColaboradorRepository extends ColaboradorRepository {
@@ -231,14 +230,6 @@ export class FakeContratoActivoReader extends ContratoActivoReader {
   contratos = new Map<number, ContratoActivo>();
   findActivo(userId: number): Promise<ContratoActivo | null> {
     return Promise.resolve(this.contratos.get(userId) ?? null);
-  }
-}
-
-export class FakePuntosInitializer extends PuntosInitializer {
-  initialized: number[] = [];
-  initialize(userId: number): Promise<void> {
-    this.initialized.push(userId);
-    return Promise.resolve();
   }
 }
 

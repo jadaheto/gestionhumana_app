@@ -13,11 +13,10 @@ import {
   ResetPasswordUsuarioUseCase,
   UpdateUsuarioUseCase,
 } from '../usuarios.use-cases';
-import { InMemoryPuntosInicializador, InMemoryUsuarioRepository } from './in-memory-usuarios.repositories';
+import { InMemoryUsuarioRepository } from './in-memory-usuarios.repositories';
 
 describe('Casos de uso de Usuarios', () => {
   let repo: InMemoryUsuarioRepository;
-  let puntos: InMemoryPuntosInicializador;
   let hasher: FakePasswordHasher;
   let tokens: FakeTokenGenerator;
   let crear: CreateUsuarioUseCase;
@@ -37,20 +36,18 @@ describe('Casos de uso de Usuarios', () => {
     repo = new InMemoryUsuarioRepository();
     repo.sedes.set(1, 'Principal');
     repo.cargos.set(2, 'Analista');
-    puntos = new InMemoryPuntosInicializador();
     hasher = new FakePasswordHasher();
     tokens = new FakeTokenGenerator();
-    crear = new CreateUsuarioUseCase(repo, puntos, hasher, tokens);
+    crear = new CreateUsuarioUseCase(repo, hasher, tokens);
   });
 
   describe('crear', () => {
-    it('crea el usuario, genera contraseña temporal, la devuelve una sola vez e inicializa puntos', async () => {
+    it('crea el usuario, genera contraseña temporal, y la devuelve una sola vez', async () => {
       const dto = await crear.execute(base);
       expect(dto.id).toBe(1);
       expect(dto.email).toBe('jperez@comfasucre.com.co');
       expect(dto.temporaryPassword).toBe('Temp1234!');
       expect(repo.passwords.get(1)).toBe('hashed:Temp1234!');
-      expect(puntos.inicializados).toEqual([1]);
       expect(dto.sedeNombre).toBe('Principal');
       expect(dto.cargoNombre).toBe('Analista');
     });

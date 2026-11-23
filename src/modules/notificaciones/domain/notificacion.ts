@@ -5,7 +5,7 @@ export interface NotificacionProps {
   userId: number;
   titulo: string;
   mensaje: string | null;
-  /** info, permiso, tarea, cumpleanos, contrato, puntos, solicitud, comunicado… */
+  /** info, permiso, tarea, cumpleanos, contrato, solicitud, comunicado… */
   tipo: string;
   leida: boolean;
   link: string | null;

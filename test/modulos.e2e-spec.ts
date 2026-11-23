@@ -17,8 +17,6 @@ const ENDPOINTS = [
   '/contratos',
   '/solicitudes/admin',
   '/beneficios/vacaciones/saldo',
-  '/puntos/mi-balance',
-  '/puntos/recompensas',
   '/notificaciones?limit=5',
   '/comunicados?page=1&size=3',
   '/conexiones/feed',

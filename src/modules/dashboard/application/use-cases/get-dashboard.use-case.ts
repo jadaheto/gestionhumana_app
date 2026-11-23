@@ -9,7 +9,6 @@ import { DashboardAdminDto, DashboardDto, DashboardFuncionarioDto } from '../dto
 /** Ventana de días para "contratos por vencer" (igual que `Rrhh::dashboard`). */
 export const DIAS_CONTRATOS_POR_VENCER = 30;
 export const LIMITE_CONTRATOS_POR_VENCER = 10;
-export const LIMITE_TOP_PUNTOS = 5;
 /** Días de vacaciones que se causan por cada año cumplido (Ley colombiana). */
 export const DIAS_VACACIONES_POR_PERIODO = 15;
 
@@ -40,13 +39,12 @@ export class GetDashboardUseCase implements UseCase<Actor, DashboardDto> {
     cumpleaneros: DashboardAdminDto['cumpleaneros'],
     aniversarios: DashboardAdminDto['aniversarios'],
   ): Promise<DashboardAdminDto> {
-    const [total, activos, inactivos, permisosPendientes, contratos, topPuntos, porArea, porSede] = await Promise.all([
+    const [total, activos, inactivos, permisosPendientes, contratos, porArea, porSede] = await Promise.all([
       this.queries.countColaboradores(),
       this.queries.countColaboradores('activo'),
       this.queries.countColaboradores('inactivo'),
       this.queries.countPermisosPendientes(),
       this.queries.contratosPorVencer(hoy, DIAS_CONTRATOS_POR_VENCER, LIMITE_CONTRATOS_POR_VENCER),
-      this.queries.topPuntos(LIMITE_TOP_PUNTOS),
       this.queries.colaboradoresPorArea(),
       this.queries.colaboradoresPorSede(),
     ]);
@@ -55,7 +53,6 @@ export class GetDashboardUseCase implements UseCase<Actor, DashboardDto> {
       hoy,
       estadisticas: { totalColaboradores: total, activos, inactivos, permisosPendientes },
       contratosPorVencer: contratos.map((c) => ({ ...c, diasRestantes: Math.max(0, diasEntre(hoy, c.fechaFin)) })),
-      topPuntos,
       porArea,
       porSede,
       cumpleaneros,

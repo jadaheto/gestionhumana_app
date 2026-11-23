@@ -6,7 +6,7 @@ import { UseCase } from '../../../../shared/application/use-case';
 import { ConflictError, InvalidOperationError, NotFoundError } from '../../../../shared/domain/domain-error';
 import { Colaborador, generateUsername } from '../../domain/colaborador';
 import { ColaboradorConNombres, ColaboradorRepository } from '../../domain/colaborador.repository';
-import { ContratoActivoReader, PuntosInitializer } from '../../domain/ports';
+import { ContratoActivoReader } from '../../domain/ports';
 import {
   ColaboradorCreadoDto,
   ColaboradorDetalleDto,
@@ -108,7 +108,6 @@ export class CreateColaboradorUseCase implements UseCase<SaveColaboradorInput, C
     private readonly colaboradores: ColaboradorRepository,
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenGenerator,
-    private readonly puntos: PuntosInitializer,
   ) {}
 
   async execute(input: SaveColaboradorInput): Promise<ColaboradorCreadoDto> {
@@ -128,7 +127,6 @@ export class CreateColaboradorUseCase implements UseCase<SaveColaboradorInput, C
     const temporaryPassword = (input.password ?? '').trim() === '' ? this.tokens.temporaryPassword() : null;
     const plain = temporaryPassword ?? (input.password as string);
     const created = await this.colaboradores.create(colaborador, await this.hasher.hash(plain));
-    await this.puntos.initialize(created.id as number);
     return { colaborador: toColaboradorDto(created), username: created.props.username, temporaryPassword };
   }
 

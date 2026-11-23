@@ -159,10 +159,6 @@ export class TypeOrmNominaEmpleadoImporter extends NominaEmpleadoImporter {
           WHERE id = $8`,
         [firstName, lastName, designation, cedula, sedeId, areaId, cargoId, userId],
       );
-      await m.query(
-        `INSERT INTO puntos (user_id, puntos_actuales, puntos_totales_ganados) VALUES ($1, 0, 0) ON CONFLICT (user_id) DO NOTHING`,
-        [userId],
-      );
       return { userId, created: false };
     }
 
@@ -180,10 +176,6 @@ export class TypeOrmNominaEmpleadoImporter extends NominaEmpleadoImporter {
       [username, email, password, firstName, lastName, designation, cedula, sedeId, areaId, cargoId],
     );
     const userId = Number(inserted[0].id);
-    await m.query(
-      `INSERT INTO puntos (user_id, puntos_actuales, puntos_totales_ganados) VALUES ($1, 0, 0) ON CONFLICT (user_id) DO NOTHING`,
-      [userId],
-    );
     return { userId, created: true };
   }
 

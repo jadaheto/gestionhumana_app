@@ -44,7 +44,7 @@ import {
   FamiliarRepository,
 } from './domain/info-personal';
 import { PerfilRepository } from './domain/perfil';
-import { BrandingReader, ContratoActivoReader, LoginHistoryReader, PuntosInitializer } from './domain/ports';
+import { BrandingReader, ContratoActivoReader, LoginHistoryReader } from './domain/ports';
 import { CarnetController } from './infrastructure/http/carnet.controller';
 import { ColaboradoresController } from './infrastructure/http/colaboradores.controller';
 import { InfoPersonalController } from './infrastructure/http/info-personal.controller';
@@ -68,7 +68,6 @@ import {
   SqlBrandingReader,
   SqlContratoActivoReader,
   SqlLoginHistoryReader,
-  SqlPuntosInitializer,
 } from './infrastructure/persistence/typeorm-ports.adapters';
 
 /**
@@ -127,7 +126,6 @@ import {
     { provide: ExperienciaLaboralRepository, useClass: TypeOrmExperienciaLaboralRepository },
     { provide: PerfilRepository, useClass: TypeOrmPerfilRepository },
     { provide: ContratoActivoReader, useClass: SqlContratoActivoReader },
-    { provide: PuntosInitializer, useClass: SqlPuntosInitializer },
     { provide: LoginHistoryReader, useClass: SqlLoginHistoryReader },
     { provide: BrandingReader, useClass: SqlBrandingReader },
   ],

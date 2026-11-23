@@ -1,5 +1,5 @@
 import { Usuario } from '../../../domain/usuario';
-import { PuntosInicializador, UsuarioConCatalogos, UsuarioRepository } from '../../../domain/usuario.repository';
+import { UsuarioConCatalogos, UsuarioRepository } from '../../../domain/usuario.repository';
 
 export class InMemoryUsuarioRepository extends UsuarioRepository {
   items: Usuario[] = [];
@@ -54,14 +54,6 @@ export class InMemoryUsuarioRepository extends UsuarioRepository {
   }
   delete(id: number): Promise<void> {
     this.items = this.items.filter((u) => u.id !== id);
-    return Promise.resolve();
-  }
-}
-
-export class InMemoryPuntosInicializador extends PuntosInicializador {
-  inicializados: number[] = [];
-  inicializar(userId: number): Promise<void> {
-    this.inicializados.push(userId);
     return Promise.resolve();
   }
 }

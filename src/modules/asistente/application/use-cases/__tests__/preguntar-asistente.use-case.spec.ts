@@ -162,7 +162,7 @@ describe('PreguntarAsistenteUseCase', () => {
       );
     }
     llm.respond(textoResultado('   '));
-    const err: unknown = await uc.execute(admin, { pregunta: 'ranking de puntos' }).catch((e: unknown) => e);
+    const err: unknown = await uc.execute(admin, { pregunta: 'colaboradores por área' }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(AsistenteSinRespuestaError);
     expect((err as AsistenteSinRespuestaError).message).toBe(MENSAJE_SIN_RESPUESTA);
     expect((err as AsistenteSinRespuestaError).herramientas).toHaveLength(MAX_RONDAS_HERRAMIENTAS);

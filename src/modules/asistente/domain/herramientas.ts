@@ -19,7 +19,7 @@ export const HERRAMIENTAS_ASISTENTE: readonly DefinicionHerramienta[] = [
   {
     name: 'ficha_colaborador',
     description:
-      'Ficha completa de un colaborador: cargo, área, sede, estado, fechas de ingreso y nacimiento, contacto, seguridad social, contrato vigente y saldo de puntos.',
+      'Ficha completa de un colaborador: cargo, área, sede, estado, fechas de ingreso y nacimiento, contacto, seguridad social y contrato vigente.',
     parameters: { type: 'object', properties: { ...colaboradorId }, required: ['colaborador_id'] },
   },
   {

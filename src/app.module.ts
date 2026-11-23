@@ -19,7 +19,6 @@ import { NominaModule } from './modules/nomina/nomina.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 import { OrganigramaModule } from './modules/organigrama/organigrama.module';
 import { OrganizacionModule } from './modules/organizacion/organizacion.module';
-import { PuntosModule } from './modules/puntos/puntos.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { DomainExceptionFilter } from './shared/infrastructure/http/filters/domain-exception.filter';
 import { JwtAuthGuard } from './shared/infrastructure/http/guards/jwt-auth.guard';
@@ -48,7 +47,6 @@ import { SharedModule } from './shared/infrastructure/shared.module';
     ColaboradoresModule,
     ContratosModule,
     BeneficiosModule,
-    PuntosModule,
     NotificacionesModule,
     ComunicadosModule,
     IdentidadModule,

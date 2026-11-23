@@ -16,7 +16,6 @@ import {
 import {
   colaboradorBase,
   FakeContratoActivoReader,
-  FakePuntosInitializer,
   InMemoryColaboradorRepository,
 } from './in-memory-colaboradores.repositories';
 
@@ -48,23 +47,20 @@ const input = {
 
 describe('Casos de uso de Colaboradores', () => {
   let repo: InMemoryColaboradorRepository;
-  let puntos: FakePuntosInitializer;
   let create: CreateColaboradorUseCase;
 
   beforeEach(() => {
     repo = new InMemoryColaboradorRepository();
-    puntos = new FakePuntosInitializer();
-    create = new CreateColaboradorUseCase(repo, new FakePasswordHasher(), new FakeTokenGenerator(), puntos);
+    create = new CreateColaboradorUseCase(repo, new FakePasswordHasher(), new FakeTokenGenerator());
   });
 
   describe('crear', () => {
-    it('genera usuario (inicial + apellido) y contraseña temporal, y crea la fila de puntos', async () => {
+    it('genera usuario (inicial + apellido) y contraseña temporal', async () => {
       const res = await create.execute(input);
       expect(res.username).toBe('agomezdiaz');
       expect(res.temporaryPassword).toBe('Temp1234!');
       expect(repo.passwords.get(res.colaborador.id)).toBe('hashed:Temp1234!');
       expect(repo.items[0].props.role).toBe('funcionario');
-      expect(puntos.initialized).toEqual([res.colaborador.id]);
     });
 
     it('añade un contador cuando el usuario generado ya existe', async () => {

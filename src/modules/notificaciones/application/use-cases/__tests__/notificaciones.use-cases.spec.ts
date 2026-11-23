@@ -27,8 +27,8 @@ describe('Casos de uso de Notificaciones', () => {
         userId: funcionarioActor.id,
         titulo: `Aviso ${i}`,
         mensaje: `Mensaje ${i}`,
-        tipo: 'puntos',
-        link: '/puntos/mi-balance',
+        tipo: 'permiso',
+        link: '/solicitudes/mis-permisos',
       });
       clock.advanceMinutes(1);
     }

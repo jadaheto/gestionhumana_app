@@ -2,7 +2,7 @@ export interface NuevaNotificacion {
   userId: number;
   titulo: string;
   mensaje: string;
-  tipo: 'info' | 'tarea' | 'permiso' | 'cumpleanos' | 'contrato' | 'puntos';
+  tipo: 'info' | 'tarea' | 'permiso' | 'cumpleanos' | 'contrato';
   link: string | null;
 }
 

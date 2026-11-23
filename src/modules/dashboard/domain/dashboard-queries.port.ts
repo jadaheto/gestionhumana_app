@@ -31,14 +31,6 @@ export interface ContratoPorVencerRow {
   fechaFin: string;
 }
 
-export interface TopPuntoRow {
-  userId: number;
-  nombre: string;
-  profileImage: string | null;
-  puntosActuales: number;
-  puntosTotalesGanados: number;
-}
-
 export interface DistribucionRow {
   nombre: string;
   total: number;
@@ -68,7 +60,6 @@ export abstract class DashboardQueries {
   abstract countColaboradores(estado?: 'activo' | 'inactivo'): Promise<number>;
   abstract countPermisosPendientes(): Promise<number>;
   abstract contratosPorVencer(hoy: string, dias: number, limite: number): Promise<ContratoPorVencerRow[]>;
-  abstract topPuntos(limite: number): Promise<TopPuntoRow[]>;
   abstract colaboradoresPorArea(): Promise<DistribucionRow[]>;
   abstract colaboradoresPorSede(): Promise<DistribucionRow[]>;
   // --- Comunes ---

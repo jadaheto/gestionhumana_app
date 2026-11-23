@@ -5,7 +5,6 @@ import {
   DashboardQueries,
   DistribucionRow,
   PerfilRow,
-  TopPuntoRow,
   VacacionAprobadaRow,
 } from '../../../domain/dashboard-queries.port';
 
@@ -14,7 +13,6 @@ export class FakeDashboardQueries extends DashboardQueries {
   colaboradores = { total: 0, activo: 0, inactivo: 0 };
   permisosPendientes = 0;
   contratos: ContratoPorVencerRow[] = [];
-  puntos: TopPuntoRow[] = [];
   porArea: DistribucionRow[] = [];
   porSede: DistribucionRow[] = [];
   cumpleaneros: CumpleaneroRow[] = [];
@@ -34,9 +32,6 @@ export class FakeDashboardQueries extends DashboardQueries {
   contratosPorVencer(hoy: string, dias: number): Promise<ContratoPorVencerRow[]> {
     this.llamadas.push(`contratosPorVencer:${hoy}:${dias}`);
     return Promise.resolve(this.contratos);
-  }
-  topPuntos(): Promise<TopPuntoRow[]> {
-    return Promise.resolve(this.puntos);
   }
   colaboradoresPorArea(): Promise<DistribucionRow[]> {
     return Promise.resolve(this.porArea);

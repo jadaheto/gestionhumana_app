@@ -12,11 +12,11 @@ correo, certificado laboral) pertenecen a otros módulos.
 ## Estructura
 ```
 usuarios/
-├── domain/            Usuario (agregado con validaciones), UsuarioRepository, PuntosInicializador (puerto hacia Puntos)
+├── domain/            Usuario (agregado con validaciones), UsuarioRepository
 ├── application/       ListUsuarios, GetUsuario, CreateUsuario, UpdateUsuario, ResetPasswordUsuario, DeleteUsuario + DTOs
 ├── infrastructure/
 │   ├── http/          UsuariosController + DTOs class-validator/Swagger
-│   └── persistence/   TypeOrmUsuarioRepository (sobre UserOrmEntity de shared), TypeOrmPuntosInicializador (SQL a `puntos`)
+│   └── persistence/   TypeOrmUsuarioRepository (sobre UserOrmEntity de shared)
 └── usuarios.module.ts
 ```
 
@@ -27,7 +27,6 @@ usuarios/
 | Rol permitido `admin`/`funcionario`; otro valor → `funcionario` | `guardar()` (`in_array`) | DTO `@IsIn`, y `normalizeRole` en el caso de uso |
 | Username/correo únicos | restricciones UNIQUE de `users` (error 500 en el legado) | `ConflictError` (409) antes de insertar; correo único también al editar |
 | Contraseña temporal si no se envía, mostrada una sola vez | `generate_temp_password()` + flashdata | `TokenGenerator.temporaryPassword()`; se devuelve en `temporaryPassword` del `POST /usuarios` y nunca más |
-| Crear fila en `puntos` al crear usuario | `$this->db->insert('puntos', …)` | puerto `PuntosInicializador` → `INSERT … ON CONFLICT DO NOTHING` |
 | El username no se modifica al editar | campo `readonly` en `usuario_editar.php` | `UpdateUsuarioInput` no admite username |
 | Restablecer: contraseña indicada ≥ 8 caracteres, o temporal generada | `reset_password()` | `ResetPasswordUsuarioUseCase` (`ValidationError` si < 8) |
 | No eliminarse a sí mismo | `eliminar()` (`$id != user_id`) | `InvalidOperationError` (422) usando `actor.id` |
@@ -49,7 +48,6 @@ Diferencias deliberadas respecto al legado:
 
 ## Tablas
 - `users` (entidad central `UserOrmEntity` de `shared`): lectura/escritura de `username`, `email`, `password`, `first_name`, `last_name`, `role`, `sede_id`, `area_id`, `cargo_id`.
-- `puntos`: inserción de la fila inicial (`user_id`, `puntos_actuales = 0`) mediante SQL parametrizado.
 - Lectura de `sedes`, `areas`, `cargos` para los nombres del listado.
 
 No requiere migraciones nuevas.

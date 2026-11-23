@@ -1,4 +1,4 @@
-/** Puertos hacia otros contextos (contratos, puntos, auth, branding). Se implementan en infraestructura con SQL. */
+/** Puertos hacia otros contextos (contratos, auth, branding). Se implementan en infraestructura con SQL. */
 
 export interface ContratoActivo {
   id: number;
@@ -13,11 +13,6 @@ export interface ContratoActivo {
 /** Lee el contrato activo más reciente de un colaborador (tabla `contratos`). */
 export abstract class ContratoActivoReader {
   abstract findActivo(userId: number): Promise<ContratoActivo | null>;
-}
-
-/** Crea la fila inicial de `puntos` del colaborador (como hacía `Colaboradores::guardar`). */
-export abstract class PuntosInitializer {
-  abstract initialize(userId: number): Promise<void>;
 }
 
 export interface LoginHistoryItem {

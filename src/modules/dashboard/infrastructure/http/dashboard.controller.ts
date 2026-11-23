@@ -16,7 +16,7 @@ export class DashboardController {
   @ApiOperation({
     summary: 'Dashboard según el rol del usuario',
     description:
-      'Administrador: estadísticas, contratos por vencer (30 días), ranking de puntos, distribución por área/sede, cumpleaños y aniversarios. ' +
+      'Administrador: estadísticas, contratos por vencer (30 días), distribución por área/sede, cumpleaños y aniversarios. ' +
       'Funcionario: resumen de perfil, permisos, vacaciones pendientes, días en la empresa, cumpleaños y aniversarios.',
   })
   obtener(@CurrentUser() actor: Actor): Promise<DashboardDto> {

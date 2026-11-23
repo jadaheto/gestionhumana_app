@@ -390,59 +390,6 @@ INSERT INTO identidad_empresa (campo, contenido, tipo, orden) VALUES
 ('himno_url', '', 'video', 5)
 ON CONFLICT (campo) DO NOTHING;
 
--- 15. Puntos del colaborador
-CREATE TABLE IF NOT EXISTS puntos (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    puntos_actuales INT DEFAULT 0,
-    puntos_totales_ganados INT DEFAULT 0,
-    puntos_totales_canjeados INT DEFAULT 0,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 16. Transacciones de puntos
-CREATE TABLE IF NOT EXISTS puntos_transacciones (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    tipo VARCHAR(20) NOT NULL, -- ganado, canjeado
-    cantidad INT NOT NULL,
-    concepto VARCHAR(255) NOT NULL,
-    referencia_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 17. Catálogo de recompensas
-CREATE TABLE IF NOT EXISTS recompensas (
-    id SERIAL PRIMARY KEY,
-    nombre VARCHAR(150) NOT NULL,
-    descripcion TEXT,
-    puntos_requeridos INT NOT NULL,
-    tipo VARCHAR(50) NOT NULL, -- horas_libres, medio_dia, teletrabajo, dia_libre
-    icono VARCHAR(50) DEFAULT 'ri-gift-line',
-    estado VARCHAR(20) DEFAULT 'activo',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Recompensas iniciales
-INSERT INTO recompensas (nombre, descripcion, puntos_requeridos, tipo, icono) VALUES
-('2 Horas Libres', 'Disfruta de 2 horas libres en tu jornada laboral', 50, 'horas_libres', 'ri-time-line'),
-('Medio Día Libre', 'Toma medio día libre para tus actividades personales', 100, 'medio_dia', 'ri-sun-line'),
-('1 Día Teletrabajo', 'Trabaja desde casa por un día completo', 150, 'teletrabajo', 'ri-home-office-line'),
-('1 Día Libre Remunerado', 'Un día libre completamente remunerado', 200, 'dia_libre', 'ri-calendar-check-line')
-ON CONFLICT DO NOTHING;
-
--- 18. Canjes realizados
-CREATE TABLE IF NOT EXISTS canjes (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    recompensa_id INT NOT NULL REFERENCES recompensas(id) ON DELETE CASCADE,
-    puntos_usados INT NOT NULL,
-    estado VARCHAR(20) DEFAULT 'pendiente', -- pendiente, aprobado, rechazado, usado
-    aprobado_por INT REFERENCES users(id) ON DELETE SET NULL,
-    fecha_uso DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- 19. Cuentas bancarias
 CREATE TABLE IF NOT EXISTS cuentas_bancarias (
     id SERIAL PRIMARY KEY,
@@ -532,7 +479,7 @@ CREATE TABLE IF NOT EXISTS notificaciones (
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     titulo VARCHAR(200) NOT NULL,
     mensaje TEXT,
-    tipo VARCHAR(50) DEFAULT 'info', -- info, permiso, tarea, cumpleanos, contrato, puntos
+    tipo VARCHAR(50) DEFAULT 'info', -- info, permiso, tarea, cumpleanos, contrato
     leida BOOLEAN DEFAULT FALSE,
     link VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -723,7 +670,3 @@ INSERT INTO users (username, email, password, first_name, last_name, role, estad
 VALUES ('admin', 'admin@comfasucre.com.co', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrador', 'Sistema', 'admin', 'activo', CURRENT_DATE)
 ON CONFLICT (username) DO NOTHING;
 
--- Crear registro de puntos para admin
-INSERT INTO puntos (user_id, puntos_actuales, puntos_totales_ganados) 
-SELECT id, 0, 0 FROM users WHERE username = 'admin'
-ON CONFLICT (user_id) DO NOTHING;

@@ -66,10 +66,10 @@ Ubicación: `backend/src/modules/colaboradores/` (`ColaboradoresModule`, cuatro 
 ## Tablas
 - `users` (entidad central `UserOrmEntity` de `shared`): colaboradores, datos básicos y perfil.
 - `educacion_formal`, `educacion_no_formal`, `familiares`, `experiencia_laboral` (entidades ORM propias en `infrastructure/persistence/info-personal.orm-entities.ts`).
-- Lectura vía SQL parametrizado (puertos): `contratos`, `login_history`, `app_settings`; escritura: `puntos` (fila inicial).
+- Lectura vía SQL parametrizado (puertos): `contratos`, `login_history`, `app_settings`.
 
 ## Estructura
-- `domain/`: `Colaborador` (+ `generateUsername`), registros de información personal, `Perfil` (+ privacidad/experiencia), puertos `ColaboradorRepository`, `*Repository`, `ContratoActivoReader`, `PuntosInitializer`, `LoginHistoryReader`, `BrandingReader`.
+- `domain/`: `Colaborador` (+ `generateUsername`), registros de información personal, `Perfil` (+ privacidad/experiencia), puertos `ColaboradorRepository`, `*Repository`, `ContratoActivoReader`, `LoginHistoryReader`, `BrandingReader`.
 - `application/`: casos de uso por operación y DTOs de salida.
 - `infrastructure/http/`: `ColaboradoresController`, `InfoPersonalController`, `CarnetController`, `PerfilController` + DTOs class-validator/Swagger.
 - `infrastructure/persistence/`: repositorios TypeORM y adaptadores SQL de los puertos.

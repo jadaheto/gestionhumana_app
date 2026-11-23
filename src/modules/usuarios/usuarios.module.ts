@@ -9,9 +9,8 @@ import {
   ResetPasswordUsuarioUseCase,
   UpdateUsuarioUseCase,
 } from './application/use-cases/usuarios.use-cases';
-import { PuntosInicializador, UsuarioRepository } from './domain/usuario.repository';
+import { UsuarioRepository } from './domain/usuario.repository';
 import { UsuariosController } from './infrastructure/http/usuarios.controller';
-import { TypeOrmPuntosInicializador } from './infrastructure/persistence/typeorm-puntos-inicializador';
 import { TypeOrmUsuarioRepository } from './infrastructure/persistence/typeorm-usuario.repository';
 
 /** Administración de usuarios (cuentas de acceso): CRUD, roles y restablecimiento de contraseña. */
@@ -26,7 +25,6 @@ import { TypeOrmUsuarioRepository } from './infrastructure/persistence/typeorm-u
     ResetPasswordUsuarioUseCase,
     DeleteUsuarioUseCase,
     { provide: UsuarioRepository, useClass: TypeOrmUsuarioRepository },
-    { provide: PuntosInicializador, useClass: TypeOrmPuntosInicializador },
   ],
   exports: [UsuarioRepository],
 })

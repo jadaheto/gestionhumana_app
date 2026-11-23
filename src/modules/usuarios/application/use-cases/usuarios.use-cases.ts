@@ -11,7 +11,7 @@ import {
 } from '../../../../shared/domain/domain-error';
 import { isUserRole, UserRole } from '../../../../shared/domain/user-role';
 import { Usuario } from '../../domain/usuario';
-import { PuntosInicializador, UsuarioConCatalogos, UsuarioRepository } from '../../domain/usuario.repository';
+import { UsuarioConCatalogos, UsuarioRepository } from '../../domain/usuario.repository';
 import {
   CreateUsuarioInput,
   PasswordRestablecidaDto,
@@ -71,7 +71,6 @@ export class GetUsuarioUseCase implements UseCase<number, UsuarioDto> {
 export class CreateUsuarioUseCase implements UseCase<CreateUsuarioInput, UsuarioCreadoDto> {
   constructor(
     private readonly usuarios: UsuarioRepository,
-    private readonly puntos: PuntosInicializador,
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenGenerator,
   ) {}
@@ -102,7 +101,6 @@ export class CreateUsuarioUseCase implements UseCase<CreateUsuarioInput, Usuario
     const plain = generated ? this.tokens.temporaryPassword() : provided;
 
     const creado = await this.usuarios.create(usuario, await this.hasher.hash(plain));
-    await this.puntos.inicializar(creado.id as number);
 
     const row = (await this.usuarios.findById(creado.id as number)) ?? {
       usuario: creado,

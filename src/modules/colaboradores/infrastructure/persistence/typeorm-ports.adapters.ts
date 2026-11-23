@@ -7,7 +7,6 @@ import {
   ContratoActivoReader,
   LoginHistoryItem,
   LoginHistoryReader,
-  PuntosInitializer,
 } from '../../domain/ports';
 
 /** Igual que `Colaborador_model::get_contrato_activo`. */
@@ -43,20 +42,6 @@ export class SqlContratoActivoReader extends ContratoActivoReader {
       salarioBase: Number(r.salario_base),
       estado: r.estado,
     };
-  }
-}
-
-/** Crea la fila de `puntos` del nuevo colaborador (idempotente). */
-@Injectable()
-export class SqlPuntosInitializer extends PuntosInitializer {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {
-    super();
-  }
-  async initialize(userId: number): Promise<void> {
-    await this.dataSource.query(
-      `INSERT INTO puntos (user_id, puntos_actuales, puntos_totales_ganados) VALUES ($1, 0, 0) ON CONFLICT (user_id) DO NOTHING`,
-      [userId],
-    );
   }
 }
 

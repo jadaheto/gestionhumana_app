@@ -111,15 +111,10 @@ export class SqlHerramientasAsistente extends HerramientasAsistente {
        ORDER BY (estado = 'activo') DESC, fecha_inicio DESC NULLS LAST, id DESC LIMIT 1`,
       [id],
     );
-    const [puntos] = await this.q(
-      `SELECT puntos_actuales, puntos_totales_ganados, puntos_totales_canjeados FROM puntos WHERE user_id = $1`,
-      [id],
-    );
     return {
       filas: 1,
       colaborador: limpiar(ficha),
       contrato: contrato ? limpiar(contrato) : null,
-      puntos: puntos ?? null,
     };
   }
 
