@@ -1,10 +1,23 @@
+import { FilaDependencia } from '../../../domain/dependencias';
 import { ColaboradorDirectorio, FiltrosDirectorio } from '../../../domain/directorio';
 import { FilaOrganigrama } from '../../../domain/organigrama';
-import { DirectorioRepository, ImportacionCargosRepository, OrganigramaRepository } from '../../../domain/repositories';
+import {
+  DependenciasRepository,
+  DirectorioRepository,
+  ImportacionCargosRepository,
+  OrganigramaRepository,
+} from '../../../domain/repositories';
 
 export class InMemoryOrganigramaRepository extends OrganigramaRepository {
   filas: FilaOrganigrama[] = [];
   findFilas(): Promise<FilaOrganigrama[]> {
+    return Promise.resolve([...this.filas]);
+  }
+}
+
+export class InMemoryDependenciasRepository extends DependenciasRepository {
+  filas: FilaDependencia[] = [];
+  findFilas(): Promise<FilaDependencia[]> {
     return Promise.resolve([...this.filas]);
   }
 }

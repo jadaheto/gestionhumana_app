@@ -1,6 +1,12 @@
 import { ValidationError } from '../../../../../shared/domain/domain-error';
-import { BuscarDirectorioUseCase, GetJerarquiaUseCase, ImportarCargosUseCase } from '../organigrama.use-cases';
 import {
+  BuscarDirectorioUseCase,
+  GetJerarquiaUseCase,
+  GetOrganigramaDependenciasUseCase,
+  ImportarCargosUseCase,
+} from '../organigrama.use-cases';
+import {
+  InMemoryDependenciasRepository,
   InMemoryDirectorioRepository,
   InMemoryImportacionCargosRepository,
   InMemoryOrganigramaRepository,
@@ -41,6 +47,26 @@ describe('Casos de uso de Organigrama', () => {
       expect(r.configurado).toBe(true);
       expect(r.totalCargos).toBe(2);
       expect(r.raiz?.hijos[0].cargoNombre).toBe('Jefe');
+    });
+  });
+
+  describe('GetOrganigramaDependenciasUseCase', () => {
+    it('informa "no configurado" cuando no hay áreas activas', async () => {
+      const r = await new GetOrganigramaDependenciasUseCase(new InMemoryDependenciasRepository()).execute();
+      expect(r).toEqual({ configurado: false, totalDependencias: 0, raices: [] });
+    });
+
+    it('devuelve el árbol de dependencias y el total', async () => {
+      const repo = new InMemoryDependenciasRepository();
+      repo.filas = [
+        { id: 1, nombre: 'Dirección', padreId: null, orden: 0, responsable: null, totalColaboradores: 2 },
+        { id: 2, nombre: 'TIC', padreId: 1, orden: 0, responsable: null, totalColaboradores: 5 },
+      ];
+      const r = await new GetOrganigramaDependenciasUseCase(repo).execute();
+      expect(r.configurado).toBe(true);
+      expect(r.totalDependencias).toBe(2);
+      expect(r.raices).toHaveLength(1);
+      expect(r.raices[0].hijas[0]).toMatchObject({ nombre: 'TIC', nivel: 1, totalColaboradores: 5 });
     });
   });
 

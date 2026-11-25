@@ -15,9 +15,19 @@ export interface AreaDto {
   sedeId: number | null;
   sedeNombre: string | null;
   responsableId: number | null;
+  /** Área de la que depende en el organigrama (null = raíz). */
+  padreId: number | null;
+  padreNombre: string | null;
+  orden: number;
   estado: string;
 }
-export type SaveAreaInput = Omit<AreaDto, 'id' | 'estado' | 'sedeNombre'> & { id?: number; estado?: string };
+/** `padreId` y `orden` sin enviar (`undefined`) conservan el valor actual al editar. */
+export type SaveAreaInput = Pick<AreaDto, 'nombre' | 'descripcion' | 'sedeId' | 'responsableId'> & {
+  id?: number;
+  estado?: string;
+  padreId?: number | null;
+  orden?: number;
+};
 
 export interface CargoDto {
   id: number;

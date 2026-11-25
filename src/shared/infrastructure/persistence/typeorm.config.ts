@@ -10,7 +10,9 @@ export function buildTypeOrmOptions(config: ConfigService<AppConfig, true>): Typ
   const isProduction = config.get('env', { infer: true }) === 'production';
   const synchronize = db.synchronize && !isProduction;
   if (db.synchronize && isProduction) {
-    new Logger('TypeORM').warn('DB_SYNCHRONIZE=true se ignora en producción: usa migraciones (DB_MIGRATIONS_RUN=true).');
+    new Logger('TypeORM').warn(
+      'DB_SYNCHRONIZE=true se ignora en producción: usa migraciones (DB_MIGRATIONS_RUN=true).',
+    );
   }
   return {
     type: 'postgres',

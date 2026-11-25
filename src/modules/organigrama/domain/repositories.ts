@@ -1,9 +1,15 @@
 import { ColaboradorDirectorio, FiltrosDirectorio } from './directorio';
+import { FilaDependencia } from './dependencias';
 import { FilaOrganigrama } from './organigrama';
 
 export abstract class OrganigramaRepository {
   /** Filas del organigrama ordenadas por nivel jerárquico y orden. */
   abstract findFilas(): Promise<FilaOrganigrama[]>;
+}
+
+/** Áreas activas con su responsable y total de colaboradores, para el organigrama de dependencias. */
+export abstract class DependenciasRepository {
+  abstract findFilas(): Promise<FilaDependencia[]>;
 }
 
 export abstract class DirectorioRepository {

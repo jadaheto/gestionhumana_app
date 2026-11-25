@@ -20,6 +20,12 @@ organigrama/
 └── organigrama.module.ts
 ```
 
+## Organigrama de dependencias (`GET /organigrama/dependencias`)
+- Árbol de **áreas activas**: cada área cuelga de `areas.padre_id` y se ordena entre hermanas por `areas.orden` y nombre (`construirArbolDependencias`, en `domain/dependencias.ts`). Un área sin padre, o cuyo padre está inactivo, queda como raíz; un ciclo en los datos se corta sin perder áreas.
+- Cada nodo trae su responsable (`areas.responsable_id` → nombre, cargo, foto) y el total de colaboradores activos del área (sin administradores).
+- La estructura es la misma de VIGÍA SSF (27 dependencias: Asamblea General → Consejo Directivo → Dirección Administrativa → …). La carga la migración `1796000000000-OrganigramaAreas`, que reutiliza las áreas existentes con el mismo nombre (sin distinguir mayúsculas ni tildes) y no pisa las que ya tienen dependencia superior. Los responsables no se cargan: se asignan en Configuración → Áreas.
+- Se edita desde el CRUD de áreas (`/organizacion/areas`: `padreId`, `orden`, `responsableId`).
+
 ## Reglas de negocio migradas
 ### Jerarquía (`GET /organigrama/jerarquia`)
 - Misma consulta que `Organigrama_model::get_jerarquia` (`organigrama` ⋈ `cargos` ⟕ `areas` ⟕ `users` activos por cargo), ordenada por `nivel_jerarquico`, `orden`.
@@ -47,6 +53,7 @@ organigrama/
 ## Endpoints (prefijo `api/v1`)
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
+| GET | `/organigrama/dependencias` | autenticado | `{ configurado, totalDependencias, raices: NodoDependencia[] }` |
 | GET | `/organigrama/jerarquia` | autenticado | `{ configurado, totalCargos, raiz: NodoOrganigrama | null }` |
 | GET | `/organigrama/directorio?q=&areaId=&sedeId=` | autenticado | `ColaboradorDirectorioDto[]` |
 | POST | `/organigrama/importar-cargos` `{ dataset }` | admin | `ImportacionCargosResultadoDto` |

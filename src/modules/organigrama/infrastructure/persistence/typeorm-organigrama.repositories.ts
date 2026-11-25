@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
+import { FilaDependencia } from '../../domain/dependencias';
 import { ColaboradorDirectorio, FiltrosDirectorio } from '../../domain/directorio';
 import { FilaOrganigrama } from '../../domain/organigrama';
-import { DirectorioRepository, ImportacionCargosRepository, OrganigramaRepository } from '../../domain/repositories';
+import {
+  DependenciasRepository,
+  DirectorioRepository,
+  ImportacionCargosRepository,
+  OrganigramaRepository,
+} from '../../domain/repositories';
 
 interface FilaOrganigramaRaw {
   id: number;
@@ -55,6 +61,58 @@ export class TypeOrmOrganigramaRepository extends OrganigramaRepository {
               lastName: r.last_name ?? '',
               profileImage: r.profile_image,
             },
+    }));
+  }
+}
+
+interface FilaDependenciaRaw {
+  id: number;
+  nombre: string;
+  padre_id: number | null;
+  orden: number | null;
+  user_id: number | null;
+  first_name: string | null;
+  last_name: string | null;
+  profile_image: string | null;
+  cargo: string | null;
+  total_colaboradores: string | number;
+}
+
+/** Áreas activas con su responsable y el número de colaboradores activos (sin administradores). */
+@Injectable()
+export class TypeOrmDependenciasRepository extends DependenciasRepository {
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {
+    super();
+  }
+
+  async findFilas(): Promise<FilaDependencia[]> {
+    const rows: FilaDependenciaRaw[] = await this.dataSource.query(
+      `SELECT a.id, a.nombre, a.padre_id, a.orden,
+              u.id AS user_id, u.first_name, u.last_name, u.profile_image,
+              COALESCE(c.nombre, u.designation) AS cargo,
+              (SELECT COUNT(*) FROM users x
+                WHERE x.area_id = a.id AND x.estado_colaborador = 'activo' AND x.role <> 'admin') AS total_colaboradores
+         FROM areas a
+         LEFT JOIN users u ON u.id = a.responsable_id
+         LEFT JOIN cargos c ON c.id = u.cargo_id
+        WHERE a.estado = 'activo'
+        ORDER BY a.orden ASC, a.nombre ASC`,
+    );
+    return rows.map((r) => ({
+      id: Number(r.id),
+      nombre: r.nombre,
+      padreId: r.padre_id === null ? null : Number(r.padre_id),
+      orden: Number(r.orden ?? 0),
+      responsable:
+        r.user_id === null
+          ? null
+          : {
+              userId: Number(r.user_id),
+              nombre: `${r.first_name ?? ''} ${r.last_name ?? ''}`.trim(),
+              cargo: r.cargo?.trim() || null,
+              profileImage: r.profile_image,
+            },
+      totalColaboradores: Number(r.total_colaboradores ?? 0),
     }));
   }
 }

@@ -15,6 +15,17 @@ export class SaveAreaRequestDto {
   @ApiPropertyOptional() @IsOptional() @IsString() descripcion?: string | null;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() sedeId?: number | null;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() responsableId?: number | null;
+  @ApiPropertyOptional({ description: 'Área de la que depende en el organigrama (null = raíz)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  padreId?: number | null;
+  @ApiPropertyOptional({ minimum: 0, description: 'Posición entre sus hermanas en el organigrama' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  orden?: number;
   @ApiPropertyOptional({ enum: ['activo', 'inactivo'] }) @IsOptional() @IsIn(['activo', 'inactivo']) estado?: string;
 }
 

@@ -4,6 +4,7 @@ import { adminActor, createTestApp, funcionarioActor } from '../../../../../shar
 import {
   BuscarDirectorioUseCase,
   GetJerarquiaUseCase,
+  GetOrganigramaDependenciasUseCase,
   ImportarCargosUseCase,
 } from '../../../application/use-cases/organigrama.use-cases';
 import { OrganigramaController } from '../organigrama.controller';
@@ -25,6 +26,12 @@ function providers() {
     importar,
     list: [
       {
+        provide: GetOrganigramaDependenciasUseCase,
+        useValue: {
+          execute: jest.fn().mockResolvedValue({ configurado: false, totalDependencias: 0, raices: [] }),
+        },
+      },
+      {
         provide: GetJerarquiaUseCase,
         useValue: { execute: jest.fn().mockResolvedValue({ configurado: false, totalCargos: 0, raiz: null }) },
       },
@@ -43,6 +50,11 @@ describe('OrganigramaController (HTTP)', () => {
       app = await createTestApp({ controllers: [OrganigramaController], providers: p.list, actor: funcionarioActor });
     });
     afterAll(() => app.close());
+
+    it('GET /organigrama/dependencias devuelve el organigrama de dependencias', async () => {
+      const res = await request(app.getHttpServer()).get('/organigrama/dependencias').expect(200);
+      expect(res.body).toEqual({ configurado: false, totalDependencias: 0, raices: [] });
+    });
 
     it('GET /organigrama/jerarquia devuelve el árbol', async () => {
       const res = await request(app.getHttpServer()).get('/organigrama/jerarquia').expect(200);

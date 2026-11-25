@@ -2,14 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { UseCase } from '../../../../shared/application/use-case';
 import { ValidationError } from '../../../../shared/domain/domain-error';
 import { CargosDatasetParser } from '../../domain/cargos-dataset.parser';
+import { construirArbolDependencias } from '../../domain/dependencias';
 import { FiltrosDirectorio } from '../../domain/directorio';
 import { construirArbol } from '../../domain/organigrama';
-import { DirectorioRepository, ImportacionCargosRepository, OrganigramaRepository } from '../../domain/repositories';
+import {
+  DependenciasRepository,
+  DirectorioRepository,
+  ImportacionCargosRepository,
+  OrganigramaRepository,
+} from '../../domain/repositories';
 import {
   ColaboradorDirectorioDto,
   ImportacionCargosResultadoDto,
   ImportarCargosInput,
   JerarquiaDto,
+  OrganigramaDependenciasDto,
 } from '../dto/organigrama.dto';
 
 @Injectable()
@@ -19,6 +26,20 @@ export class GetJerarquiaUseCase implements UseCase<void, JerarquiaDto> {
     const filas = await this.organigrama.findFilas();
     const raiz = construirArbol(filas);
     return { configurado: raiz !== null, totalCargos: new Set(filas.map((f) => f.cargoId)).size, raiz };
+  }
+}
+
+/** Organigrama de dependencias: árbol de áreas activas con su responsable. */
+@Injectable()
+export class GetOrganigramaDependenciasUseCase implements UseCase<void, OrganigramaDependenciasDto> {
+  constructor(private readonly dependencias: DependenciasRepository) {}
+  async execute(): Promise<OrganigramaDependenciasDto> {
+    const filas = await this.dependencias.findFilas();
+    return {
+      configurado: filas.length > 0,
+      totalDependencias: filas.length,
+      raices: construirArbolDependencias(filas),
+    };
   }
 }
 

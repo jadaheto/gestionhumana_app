@@ -3,13 +3,20 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   BuscarDirectorioUseCase,
   GetJerarquiaUseCase,
+  GetOrganigramaDependenciasUseCase,
   ImportarCargosUseCase,
 } from './application/use-cases/organigrama.use-cases';
-import { DirectorioRepository, ImportacionCargosRepository, OrganigramaRepository } from './domain/repositories';
+import {
+  DependenciasRepository,
+  DirectorioRepository,
+  ImportacionCargosRepository,
+  OrganigramaRepository,
+} from './domain/repositories';
 import { OrganigramaController } from './infrastructure/http/organigrama.controller';
 import { CargoSalarioOrmEntity } from './infrastructure/persistence/cargo-salario.orm-entity';
 import { OrganigramaOrmEntity } from './infrastructure/persistence/organigrama.orm-entity';
 import {
+  TypeOrmDependenciasRepository,
   TypeOrmDirectorioRepository,
   TypeOrmImportacionCargosRepository,
   TypeOrmOrganigramaRepository,
@@ -21,9 +28,11 @@ import {
   controllers: [OrganigramaController],
   providers: [
     GetJerarquiaUseCase,
+    GetOrganigramaDependenciasUseCase,
     BuscarDirectorioUseCase,
     ImportarCargosUseCase,
     { provide: OrganigramaRepository, useClass: TypeOrmOrganigramaRepository },
+    { provide: DependenciasRepository, useClass: TypeOrmDependenciasRepository },
     { provide: DirectorioRepository, useClass: TypeOrmDirectorioRepository },
     { provide: ImportacionCargosRepository, useClass: TypeOrmImportacionCargosRepository },
   ],

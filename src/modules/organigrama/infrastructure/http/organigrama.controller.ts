@@ -5,16 +5,18 @@ import {
   ColaboradorDirectorioDto,
   ImportacionCargosResultadoDto,
   JerarquiaDto,
+  OrganigramaDependenciasDto,
 } from '../../application/dto/organigrama.dto';
 import {
   BuscarDirectorioUseCase,
   GetJerarquiaUseCase,
+  GetOrganigramaDependenciasUseCase,
   ImportarCargosUseCase,
 } from '../../application/use-cases/organigrama.use-cases';
 import { DirectorioQueryDto, ImportarCargosRequestDto } from './dto/organigrama-request.dto';
 
 /**
- * Organigrama (jerarquía de cargos), directorio de colaboradores e importador
+ * Organigrama (dependencias y jerarquía de cargos), directorio de colaboradores e importador
  * de cargos/áreas. Lectura: cualquier usuario autenticado. Importador: admin.
  */
 @ApiTags('Organigrama')
@@ -22,10 +24,17 @@ import { DirectorioQueryDto, ImportarCargosRequestDto } from './dto/organigrama-
 @Controller('organigrama')
 export class OrganigramaController {
   constructor(
+    private readonly getDependencias: GetOrganigramaDependenciasUseCase,
     private readonly getJerarquia: GetJerarquiaUseCase,
     private readonly buscarDirectorio: BuscarDirectorioUseCase,
     private readonly importarCargos: ImportarCargosUseCase,
   ) {}
+
+  @Get('dependencias')
+  @ApiOperation({ summary: 'Organigrama de dependencias: árbol de áreas activas con su responsable' })
+  dependencias(): Promise<OrganigramaDependenciasDto> {
+    return this.getDependencias.execute();
+  }
 
   @Get('jerarquia')
   @ApiOperation({ summary: 'Árbol jerárquico de cargos con titulares activos' })

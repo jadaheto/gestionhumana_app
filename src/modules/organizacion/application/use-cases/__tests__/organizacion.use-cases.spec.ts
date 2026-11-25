@@ -1,5 +1,5 @@
 import { NotFoundError, ValidationError } from '../../../../../shared/domain/domain-error';
-import { DeleteAreaUseCase, SaveAreaUseCase } from '../areas.use-cases';
+import { DeleteAreaUseCase, ListAreasUseCase, SaveAreaUseCase } from '../areas.use-cases';
 import { ListCargosUseCase, SaveCargoUseCase } from '../cargos.use-cases';
 import { DeleteSedeUseCase, ListSedesUseCase, SaveSedeUseCase } from '../sedes.use-cases';
 import {
@@ -79,6 +79,39 @@ describe('Casos de uso de Organización', () => {
       });
       const area = await save.execute({ nombre: 'TI', descripcion: null, sedeId: sede.id, responsableId: null });
       expect(area.sedeId).toBe(sede.id);
+    });
+
+    it('guarda la dependencia superior y la conserva si al editar no se envía', async () => {
+      const save = new SaveAreaUseCase(areas, sedes);
+      const base = { descripcion: null, sedeId: null, responsableId: null };
+      const direccion = await save.execute({ ...base, nombre: 'Dirección' });
+      const tic = await save.execute({ ...base, nombre: 'TIC', padreId: direccion.id, orden: 3 });
+      expect(tic).toMatchObject({ padreId: direccion.id, padreNombre: 'Dirección', orden: 3 });
+
+      const renombrada = await save.execute({ ...base, id: tic.id, nombre: 'Tecnología' });
+      expect(renombrada).toMatchObject({ nombre: 'Tecnología', padreId: direccion.id, orden: 3 });
+
+      const raiz = await save.execute({ ...base, id: tic.id, nombre: 'Tecnología', padreId: null });
+      expect(raiz.padreId).toBeNull();
+
+      const listado = await new ListAreasUseCase(areas).execute({});
+      expect(listado.find((a) => a.id === direccion.id)?.padreNombre).toBeNull();
+    });
+
+    it('rechaza depender de sí misma, de un área inexistente o formar un ciclo', async () => {
+      const save = new SaveAreaUseCase(areas, sedes);
+      const base = { descripcion: null, sedeId: null, responsableId: null };
+      const a = await save.execute({ ...base, nombre: 'A' });
+      const b = await save.execute({ ...base, nombre: 'B', padreId: a.id });
+      const c = await save.execute({ ...base, nombre: 'C', padreId: b.id });
+
+      await expect(save.execute({ ...base, id: a.id, nombre: 'A', padreId: a.id })).rejects.toBeInstanceOf(
+        ValidationError,
+      );
+      await expect(save.execute({ ...base, id: a.id, nombre: 'A', padreId: c.id })).rejects.toBeInstanceOf(
+        ValidationError,
+      );
+      await expect(save.execute({ ...base, nombre: 'D', padreId: 99 })).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('elimina áreas', async () => {

@@ -7,13 +7,23 @@ export interface AreaProps {
   descripcion: string | null;
   sedeId: number | null;
   responsableId: number | null;
+  /** Área de la que depende en el organigrama (null = raíz). */
+  padreId: number | null;
+  /** Posición entre sus hermanas en el organigrama. */
+  orden: number;
   estado: EstadoRegistro;
 }
 
 export class Area {
   private constructor(readonly props: AreaProps) {}
 
-  static create(props: Omit<AreaProps, 'id'> & { id?: number | null }): Area {
+  static create(
+    props: Omit<AreaProps, 'id' | 'padreId' | 'orden'> & {
+      id?: number | null;
+      padreId?: number | null;
+      orden?: number;
+    },
+  ): Area {
     const nombre = (props.nombre ?? '').trim();
     if (nombre === '') throw new ValidationError('El nombre del área es obligatorio.');
     return new Area({
@@ -22,6 +32,8 @@ export class Area {
       descripcion: props.descripcion?.trim() || null,
       sedeId: props.sedeId ?? null,
       responsableId: props.responsableId ?? null,
+      padreId: props.padreId ?? null,
+      orden: Math.max(0, Math.trunc(props.orden ?? 0)),
       estado: props.estado === 'inactivo' ? 'inactivo' : 'activo',
     });
   }
