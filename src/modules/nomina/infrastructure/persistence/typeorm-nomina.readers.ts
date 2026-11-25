@@ -150,7 +150,7 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
     return {
       jefeNombre: val('cert_jefe_nombre', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
       jefeCargo: val('cert_jefe_cargo', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
-      firmaPath: await imagenParaPdf(await this.resolve(val('cert_firma_png'))),
+      firmaPath: await imagenParaPdf(await this.resolve(val('cert_firma_png')), 'tinta'),
       logoPath: (await imagenParaPdf(await this.resolve(val('branding_logo_dark')))) ?? logoInstitucional(),
       sellos: sellosInstitucionales(),
     };

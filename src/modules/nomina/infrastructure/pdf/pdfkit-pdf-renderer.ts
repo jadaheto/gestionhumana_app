@@ -119,7 +119,13 @@ export class PdfkitPdfRenderer extends PdfRenderer {
         const y = doc.y;
         if (b.imagePath) {
           try {
-            doc.image(b.imagePath, margin, y, { fit: [width, altoFirma], align: 'center', valign: 'bottom' });
+            // Ancho acotado: una firma muy alargada no debe desbordar el bloque del firmante.
+            const anchoFirma = Math.min(width, 250);
+            doc.image(b.imagePath, margin + (width - anchoFirma) / 2, y, {
+              fit: [anchoFirma, altoFirma],
+              align: 'center',
+              valign: 'bottom',
+            });
           } catch (e) {
             // Queda el espacio para firmar a mano, pero se deja rastro del motivo.
             this.logger.warn(`No se pudo dibujar la firma ${b.imagePath}: ${(e as Error).message}`);
