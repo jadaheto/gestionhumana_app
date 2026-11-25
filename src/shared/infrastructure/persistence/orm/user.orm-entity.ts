@@ -27,6 +27,8 @@ export class UserOrmEntity {
   @Column({ type: 'varchar', length: 20, default: 'funcionario' }) role!: string;
   /** Un administrador que además es empleado: aparece en colaboradores, organigrama, conteos, etc. */
   @Column({ type: 'boolean', default: false }) es_colaborador!: boolean;
+  /** Designado por Gestión Humana para crear eventos para todos los trabajadores. */
+  @Column({ type: 'boolean', default: false }) puede_crear_eventos!: boolean;
   @Column({ type: 'jsonb', default: () => `'{"language":"es","theme":"light"}'` })
   ui_preferences!: Record<string, unknown>;
   @Column({ type: 'jsonb', default: () => `'{}'` }) privacy_settings!: Record<string, unknown>;

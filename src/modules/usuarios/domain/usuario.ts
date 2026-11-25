@@ -10,6 +10,8 @@ export interface UsuarioProps {
   role: UserRole;
   /** Administrador que además es empleado (sólo aplica al rol `admin`). */
   esColaborador: boolean;
+  /** Designado para crear eventos para todos los trabajadores (los administradores siempre pueden). */
+  puedeCrearEventos: boolean;
   sedeId: number | null;
   areaId: number | null;
   cargoId: number | null;
@@ -28,9 +30,10 @@ export class Usuario {
   private constructor(readonly props: UsuarioProps) {}
 
   static create(
-    props: Omit<UsuarioProps, 'id' | 'esColaborador' | 'estadoColaborador' | 'profileImage'> & {
+    props: Omit<UsuarioProps, 'id' | 'esColaborador' | 'puedeCrearEventos' | 'estadoColaborador' | 'profileImage'> & {
       id?: number | null;
       esColaborador?: boolean | null;
+      puedeCrearEventos?: boolean | null;
       estadoColaborador?: string | null;
       profileImage?: string | null;
     },
@@ -53,6 +56,7 @@ export class Usuario {
       lastName,
       role: props.role,
       esColaborador: props.role === 'admin' && props.esColaborador === true,
+      puedeCrearEventos: props.puedeCrearEventos === true,
       sedeId: props.sedeId ?? null,
       areaId: props.areaId ?? null,
       cargoId: props.cargoId ?? null,
@@ -88,7 +92,15 @@ export class Usuario {
   actualizar(
     cambios: Pick<
       UsuarioProps,
-      'email' | 'firstName' | 'lastName' | 'role' | 'esColaborador' | 'sedeId' | 'areaId' | 'cargoId'
+      | 'email'
+      | 'firstName'
+      | 'lastName'
+      | 'role'
+      | 'esColaborador'
+      | 'puedeCrearEventos'
+      | 'sedeId'
+      | 'areaId'
+      | 'cargoId'
     >,
   ): Usuario {
     return Usuario.create({ ...this.props, ...cambios });

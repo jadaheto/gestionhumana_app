@@ -17,6 +17,7 @@ const toEvento = (r: CalendarEventOrmEntity): EventoCalendario =>
     clase: r.class_name,
     ubicacion: r.location,
     descripcion: r.description,
+    paraTodos: r.para_todos === true,
   });
 
 @Injectable()
@@ -25,10 +26,10 @@ export class TypeOrmEventoCalendarioRepository extends EventoCalendarioRepositor
     super();
   }
 
-  async findByUsuario(userId: number, desde?: string, hasta?: string): Promise<EventoCalendario[]> {
+  async findVisibles(userId: number, desde?: string, hasta?: string): Promise<EventoCalendario[]> {
     const qb = this.repo
       .createQueryBuilder('e')
-      .where('e.user_id = :userId', { userId })
+      .where('(e.user_id = :userId OR e.para_todos = TRUE)', { userId })
       .orderBy('e.start_date', 'ASC');
     // Un evento entra en el rango si se solapa con él (inicio ≤ hasta y fin/inicio ≥ desde).
     if (desde) qb.andWhere('COALESCE(e.end_date, e.start_date) >= :desde', { desde: `${desde} 00:00:00` });
@@ -51,6 +52,7 @@ export class TypeOrmEventoCalendarioRepository extends EventoCalendarioRepositor
       class_name: p.clase,
       location: p.ubicacion,
       description: p.descripcion,
+      para_todos: p.paraTodos,
     };
     if (p.id) {
       await this.repo.update({ id: p.id, user_id: p.userId }, data);

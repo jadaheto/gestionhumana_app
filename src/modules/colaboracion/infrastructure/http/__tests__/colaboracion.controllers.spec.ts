@@ -11,6 +11,7 @@ import {
 } from '../../../application/use-cases/api-keys.use-cases';
 import {
   EliminarEventoUseCase,
+  GetPermisosCalendarioUseCase,
   GuardarEventoUseCase,
   ListEventosUseCase,
 } from '../../../application/use-cases/calendario.use-cases';
@@ -66,6 +67,7 @@ function providers() {
     { provide: ListEventosUseCase, useValue: mock() },
     { provide: GuardarEventoUseCase, useValue: m.guardarEvento },
     { provide: EliminarEventoUseCase, useValue: mock(undefined) },
+    { provide: GetPermisosCalendarioUseCase, useValue: mock({ puedeCrearGenerales: false }) },
     { provide: ListContactosChatUseCase, useValue: mock() },
     { provide: GetConversacionUseCase, useValue: mock() },
     { provide: EnviarMensajeChatUseCase, useValue: m.enviarMensaje },

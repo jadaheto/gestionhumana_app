@@ -18,7 +18,8 @@ export abstract class TareaRepository {
 }
 
 export abstract class EventoCalendarioRepository {
-  abstract findByUsuario(userId: number, desde?: string, hasta?: string): Promise<EventoCalendario[]>;
+  /** Eventos que ve el usuario: los propios más los institucionales (para todos). */
+  abstract findVisibles(userId: number, desde?: string, hasta?: string): Promise<EventoCalendario[]>;
   abstract findById(id: number): Promise<EventoCalendario | null>;
   abstract save(evento: EventoCalendario): Promise<EventoCalendario>;
   abstract delete(id: number): Promise<void>;

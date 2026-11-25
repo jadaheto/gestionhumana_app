@@ -37,13 +37,16 @@ export interface EventoCalendarioProps {
   clase: string;
   ubicacion: string | null;
   descripcion: string | null;
+  /** Evento institucional visible para todos los trabajadores (lo crea Gestión Humana o un designado). */
+  paraTodos: boolean;
 }
 
 export class EventoCalendario {
   private constructor(readonly props: EventoCalendarioProps) {}
 
   static create(
-    props: Omit<EventoCalendarioProps, 'id' | 'inicio' | 'fin' | 'clase' | 'todoElDia'> & {
+    props: Omit<EventoCalendarioProps, 'id' | 'inicio' | 'fin' | 'clase' | 'todoElDia' | 'paraTodos'> & {
+      paraTodos?: boolean;
       id?: number | null;
       inicio: string;
       fin?: string | null;
@@ -68,6 +71,7 @@ export class EventoCalendario {
       clase: props.clase?.trim() || 'bg-primary',
       ubicacion: props.ubicacion?.trim() || null,
       descripcion: props.descripcion?.trim() || null,
+      paraTodos: props.paraTodos === true,
     });
   }
 

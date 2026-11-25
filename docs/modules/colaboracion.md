@@ -72,3 +72,12 @@ Propias (entidades ORM del módulo): `tasks`, `task_assignees`, `calendar_events
 ## Tests
 - `application/use-cases/__tests__/*.spec.ts` (repos en memoria): permisos de tareas, notificaciones, kanban/estadísticas, normalización de fechas, eventos de sistema, chat, correo (SMTP caído) y API keys.
 - `infrastructure/http/__tests__/colaboracion.controllers.spec.ts`: rutas, validación y códigos HTTP de los seis controladores.
+
+## Calendario: eventos para todos los trabajadores
+- `calendar_events.para_todos`: evento institucional visible para todos; `users.puede_crear_eventos`: persona designada por
+  Gestión Humana (migración `1798000000000-EventosParaTodos`). Los administradores siempre pueden.
+- `GET /colaboracion/calendario/eventos` devuelve los eventos propios y los `paraTodos`, con `editable` y `creador`.
+- Crear o marcar un evento como `paraTodos` exige ser administrador o designado (403 en otro caso). Lo modifican o eliminan su
+  autor (mientras siga designado) o un administrador, que al editarlo no cambia el autor.
+- `GET /colaboracion/calendario/eventos/permisos` → `{ puedeCrearGenerales }`.
+- La designación se guarda desde el módulo `usuarios` (`puedeCrearEventos`).

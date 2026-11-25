@@ -10,6 +10,8 @@ export interface UsuarioDto {
   role: UserRole;
   /** Administrador que además es empleado. */
   esColaborador: boolean;
+  /** Designado para crear eventos para todos los trabajadores. */
+  puedeCrearEventos: boolean;
   sedeId: number | null;
   sedeNombre: string | null;
   areaId: number | null;
@@ -27,6 +29,7 @@ export interface CreateUsuarioInput {
   lastName: string;
   role: string;
   esColaborador?: boolean | null;
+  puedeCrearEventos?: boolean | null;
   /** Si se omite, se genera una contraseña temporal que se devuelve una sola vez. */
   password?: string | null;
   sedeId: number | null;
@@ -41,6 +44,7 @@ export interface UpdateUsuarioInput {
   lastName: string;
   role: string;
   esColaborador?: boolean | null;
+  puedeCrearEventos?: boolean | null;
   sedeId: number | null;
   areaId: number | null;
   cargoId: number | null;

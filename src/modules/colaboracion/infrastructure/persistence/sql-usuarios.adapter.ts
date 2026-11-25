@@ -47,6 +47,13 @@ export class SqlUsuariosAdapter extends UsuariosPort {
     );
     return new Map(rows.map((r) => [Number(r['id']), toUsuario(r).nombre]));
   }
+
+  async puedeCrearEventosGenerales(id: number): Promise<boolean> {
+    const rows: Row[] = await this.dataSource.query(`SELECT puede_crear_eventos FROM users WHERE id = $1 LIMIT 1`, [
+      id,
+    ]);
+    return rows[0]?.['puede_crear_eventos'] === true;
+  }
 }
 
 /** Cumpleaños y fechas de ingreso de colaboradores activos (`Calendar_model::get_special_events`). */

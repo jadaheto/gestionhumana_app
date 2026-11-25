@@ -15,6 +15,8 @@ export abstract class UsuariosPort {
   abstract existe(id: number): Promise<boolean>;
   abstract buscarPorEmail(email: string): Promise<UsuarioResumen | null>;
   abstract nombresPorIds(ids: number[]): Promise<Map<number, string>>;
+  /** Gestión Humana designó al usuario para crear eventos para todos los trabajadores. */
+  abstract puedeCrearEventosGenerales(id: number): Promise<boolean>;
 }
 
 /** Evento de sistema del calendario (cumpleaños o aniversario laboral). */

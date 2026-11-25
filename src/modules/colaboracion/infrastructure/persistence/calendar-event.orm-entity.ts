@@ -11,5 +11,7 @@ export class CalendarEventOrmEntity {
   @Column({ type: 'varchar', length: 50, default: 'bg-primary' }) class_name!: string;
   @Column({ type: 'varchar', length: 255, nullable: true }) location!: string | null;
   @Column({ type: 'text', nullable: true }) description!: string | null;
+  /** Evento institucional visible para todos los trabajadores. */
+  @Column({ type: 'boolean', default: false }) para_todos!: boolean;
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }) created_at!: Date;
 }

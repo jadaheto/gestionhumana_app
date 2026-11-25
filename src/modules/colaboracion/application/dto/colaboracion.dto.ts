@@ -65,6 +65,12 @@ export interface EventoCalendarioDto {
   /** true para cumpleaños/aniversarios generados por el sistema (no editables). */
   esDeSistema: boolean;
   tipoSistema?: 'cumpleanos' | 'aniversario';
+  /** Evento institucional visible para todos los trabajadores. */
+  paraTodos?: boolean;
+  /** El usuario actual puede editarlo o eliminarlo. */
+  editable?: boolean;
+  /** Quién publicó el evento institucional. */
+  creador?: string | null;
 }
 
 export interface GuardarEventoInput {
@@ -76,6 +82,8 @@ export interface GuardarEventoInput {
   clase?: string | null;
   ubicacion?: string | null;
   descripcion?: string | null;
+  /** Publicarlo para todos los trabajadores (sólo Gestión Humana o designados). */
+  paraTodos?: boolean;
 }
 
 // ---------- Chat ----------

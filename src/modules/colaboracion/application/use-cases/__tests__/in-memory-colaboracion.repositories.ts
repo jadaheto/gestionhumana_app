@@ -51,11 +51,11 @@ export class InMemoryTareaRepository extends TareaRepository {
 export class InMemoryEventoRepository extends EventoCalendarioRepository {
   items: EventoCalendario[] = [];
   private seq = 1;
-  findByUsuario(userId: number, desde?: string, hasta?: string): Promise<EventoCalendario[]> {
+  findVisibles(userId: number, desde?: string, hasta?: string): Promise<EventoCalendario[]> {
     return Promise.resolve(
       this.items.filter((e) => {
         const p = e.props;
-        if (p.userId !== userId) return false;
+        if (p.userId !== userId && !p.paraTodos) return false;
         if (desde && (p.fin ?? p.inicio).slice(0, 10) < desde) return false;
         if (hasta && p.inicio.slice(0, 10) > hasta) return false;
         return true;
@@ -228,6 +228,11 @@ export class InMemoryUsuariosPort extends UsuariosPort {
   }
   nombresPorIds(ids: number[]): Promise<Map<number, string>> {
     return Promise.resolve(new Map(this.items.filter((u) => ids.includes(u.id)).map((u) => [u.id, u.nombre])));
+  }
+  /** Usuarios designados por Gestión Humana para crear eventos para todos. */
+  designados = new Set<number>();
+  puedeCrearEventosGenerales(id: number): Promise<boolean> {
+    return Promise.resolve(this.designados.has(id));
   }
 }
 

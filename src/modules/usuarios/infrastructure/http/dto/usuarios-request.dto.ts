@@ -23,6 +23,10 @@ export class UpdateUsuarioRequestDto {
   @IsOptional()
   @IsBoolean()
   esColaborador?: boolean;
+  @ApiPropertyOptional({ description: 'Designado para crear eventos para todos los trabajadores' })
+  @IsOptional()
+  @IsBoolean()
+  puedeCrearEventos?: boolean;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() sedeId?: number | null;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() areaId?: number | null;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() cargoId?: number | null;

@@ -10,6 +10,7 @@ import {
 } from './application/use-cases/api-keys.use-cases';
 import {
   EliminarEventoUseCase,
+  GetPermisosCalendarioUseCase,
   GuardarEventoUseCase,
   ListEventosUseCase,
 } from './application/use-cases/calendario.use-cases';
@@ -100,6 +101,7 @@ import { TypeOrmTareaRepository } from './infrastructure/persistence/typeorm-tar
     ListEventosUseCase,
     GuardarEventoUseCase,
     EliminarEventoUseCase,
+    GetPermisosCalendarioUseCase,
     // Chat
     ListContactosChatUseCase,
     GetConversacionUseCase,

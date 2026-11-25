@@ -5,12 +5,16 @@ import { CurrentUser } from '../../../../shared/infrastructure/http/decorators/c
 import { EventoCalendarioDto } from '../../application/dto/colaboracion.dto';
 import {
   EliminarEventoUseCase,
+  GetPermisosCalendarioUseCase,
   GuardarEventoUseCase,
   ListEventosUseCase,
 } from '../../application/use-cases/calendario.use-cases';
 import { GuardarEventoRequestDto } from './dto/colaboracion-request.dto';
 
-/** Calendario personal (sustituye a `Calendar.php`). Cada usuario sólo ve y edita sus propios eventos. */
+/**
+ * Calendario (sustituye a `Calendar.php`). Cada usuario ve y edita sus eventos personales; los eventos
+ * para todos los trabajadores los ve todo el mundo y sólo los crea Gestión Humana o un designado.
+ */
 @ApiTags('Colaboración · Calendario')
 @ApiBearerAuth()
 @Controller('colaboracion/calendario/eventos')
@@ -19,10 +23,19 @@ export class CalendarioController {
     private readonly listEventos: ListEventosUseCase,
     private readonly guardarEvento: GuardarEventoUseCase,
     private readonly eliminarEvento: EliminarEventoUseCase,
+    private readonly permisos: GetPermisosCalendarioUseCase,
   ) {}
 
+  @Get('permisos')
+  @ApiOperation({ summary: '¿Puedo crear eventos para todos los trabajadores? (Gestión Humana o designados)' })
+  misPermisos(@CurrentUser() actor: Actor): Promise<{ puedeCrearGenerales: boolean }> {
+    return this.permisos.execute(actor);
+  }
+
   @Get()
-  @ApiOperation({ summary: 'Eventos propios en un rango de fechas (+ cumpleaños y aniversarios del sistema)' })
+  @ApiOperation({
+    summary: 'Eventos propios y para todos en un rango de fechas (+ cumpleaños y aniversarios del sistema)',
+  })
   @ApiQuery({ name: 'desde', required: false, example: '2026-10-01' })
   @ApiQuery({ name: 'hasta', required: false, example: '2026-10-31' })
   @ApiQuery({ name: 'sistema', required: false, type: Boolean, description: 'false para excluir eventos de sistema' })
@@ -41,7 +54,7 @@ export class CalendarioController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Crear evento' })
+  @ApiOperation({ summary: 'Crear evento (paraTodos sólo Gestión Humana o designados)' })
   crear(@CurrentUser() actor: Actor, @Body() dto: GuardarEventoRequestDto): Promise<EventoCalendarioDto> {
     return this.guardarEvento.execute({ actor, input: dto });
   }

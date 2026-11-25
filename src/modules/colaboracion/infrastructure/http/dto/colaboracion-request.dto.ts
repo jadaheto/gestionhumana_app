@@ -68,6 +68,10 @@ export class GuardarEventoRequestDto {
   clase?: string | null;
   @ApiPropertyOptional({ maxLength: 255 }) @IsOptional() @IsString() @MaxLength(255) ubicacion?: string | null;
   @ApiPropertyOptional() @IsOptional() @IsString() descripcion?: string | null;
+  @ApiPropertyOptional({ description: 'Evento para todos los trabajadores (sólo Gestión Humana o designados)' })
+  @IsOptional()
+  @IsBoolean()
+  paraTodos?: boolean;
 }
 
 // ---------- Chat ----------
