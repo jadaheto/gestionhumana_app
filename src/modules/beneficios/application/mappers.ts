@@ -33,6 +33,7 @@ export function toPermisoDto(
     jefeEstado: p.jefeEstado,
     jefeObservacion: p.jefeObservacion,
     jefeFecha: p.jefeFecha,
+    jefeEnNombre: permiso.vistoBuenoEnNombreDelJefe,
     jefe: nombres.jefe ?? null,
     etapa: permiso.etapa,
   };

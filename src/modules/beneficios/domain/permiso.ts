@@ -53,6 +53,8 @@ export interface PermisoProps {
   jefeObservacion: string | null;
   /** `YYYY-MM-DD HH:mm:ss` en que el jefe respondió. */
   jefeFecha: string | null;
+  /** Quién registró la respuesta del jefe: el propio jefe o un administrador en su nombre. */
+  jefeResueltoPor: number | null;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -118,6 +120,7 @@ export class Permiso {
       jefeEstado: props.jefeId ? 'pendiente' : 'no_aplica',
       jefeObservacion: null,
       jefeFecha: null,
+      jefeResueltoPor: null,
       createdAt: null,
       updatedAt: null,
     });
@@ -168,14 +171,36 @@ export class Permiso {
 
   /** Visto bueno del jefe inmediato: la solicitud sigue pendiente, ahora a cargo de Gestión Humana. */
   aprobarComoJefe(observacion: string | null, ahora: string): Permiso {
+    return this.registrarVistoBueno(this.props.jefeId, observacion, ahora);
+  }
+
+  /**
+   * Visto bueno que un administrador registra en nombre del jefe inmediato (p. ej. si está ausente).
+   * Exige dejar el motivo; después sigue faltando la aprobación de Gestión Humana.
+   */
+  aprobarEnNombreDelJefe(adminId: number, motivo: string | null, ahora: string): Permiso {
+    if (!motivo?.trim()) {
+      throw new ValidationError('Indica el motivo por el que apruebas en nombre del jefe inmediato.');
+    }
+    return this.registrarVistoBueno(adminId, motivo, ahora);
+  }
+
+  private registrarVistoBueno(resueltoPor: number | null, observacion: string | null, ahora: string): Permiso {
     this.exigirTurnoDelJefe();
     return new Permiso({
       ...this.props,
       jefeEstado: 'aprobado',
       jefeObservacion: observacion?.trim() || null,
       jefeFecha: ahora,
+      jefeResueltoPor: resueltoPor,
       updatedAt: ahora,
     });
+  }
+
+  /** El visto bueno del jefe lo registró un administrador en su nombre. */
+  get vistoBuenoEnNombreDelJefe(): boolean {
+    const p = this.props;
+    return p.jefeEstado === 'aprobado' && p.jefeResueltoPor !== null && p.jefeResueltoPor !== p.jefeId;
   }
 
   /** Rechazo del jefe inmediato: cierra la solicitud sin pasar por Gestión Humana. */
@@ -190,6 +215,7 @@ export class Permiso {
       jefeEstado: 'rechazado',
       jefeObservacion: obs,
       jefeFecha: ahora,
+      jefeResueltoPor: this.props.jefeId,
       updatedAt: ahora,
     });
   }

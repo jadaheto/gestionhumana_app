@@ -110,3 +110,7 @@ casos de uso con repositorios en memoria y controladores con `createTestApp` (ro
 - El DTO expone `jefeId`, `jefeEstado`, `jefeObservacion`, `jefeFecha`, `jefe` y `etapa` (`jefe` | `gestion_humana` | `finalizada`).
 - `GET /solicitudes/jefe/estado` → `{ esJefe }`: verdadero si el usuario es responsable de un área activa o tiene solicitudes
   asignadas como jefe; el frontend lo usa para mostrar u ocultar la bandeja del equipo.
+- **En nombre del jefe**: un administrador puede llamar `POST /solicitudes/:id/jefe/aprobar` aunque no sea el jefe asignado,
+  con `observacion` (motivo) obligatoria. Se guarda en `permisos.jefe_resuelto_por` (migración
+  `1797500000000-SolicitudesJefeResueltoPor`), el DTO lo marca con `jefeEnNombre` y se notifica al jefe y al solicitante. El
+  rechazo en nombre del jefe no está permitido.

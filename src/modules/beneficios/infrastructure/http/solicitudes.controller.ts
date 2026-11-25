@@ -136,7 +136,10 @@ export class SolicitudesController {
 
   @Post(':id/jefe/aprobar')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Visto bueno del jefe inmediato: la solicitud pasa a Gestión Humana' })
+  @ApiOperation({
+    summary:
+      'Visto bueno del jefe inmediato (o de un administrador en su nombre, con motivo): la solicitud pasa a Gestión Humana',
+  })
   aprobarComoJefe(
     @CurrentUser() actor: Actor,
     @Param('id', ParseIntPipe) id: number,

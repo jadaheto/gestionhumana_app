@@ -38,6 +38,8 @@ export interface PermisoDto {
   jefeEstado: string;
   jefeObservacion: string | null;
   jefeFecha: string | null;
+  /** El visto bueno lo registró un administrador en nombre del jefe inmediato. */
+  jefeEnNombre: boolean;
   /** Nombre del jefe inmediato (listados de administración y del jefe). */
   jefe: string | null;
   /** Paso actual: `jefe` (espera al jefe), `gestion_humana` o `finalizada`. */

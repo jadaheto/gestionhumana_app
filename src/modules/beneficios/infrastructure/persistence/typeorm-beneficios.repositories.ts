@@ -45,6 +45,7 @@ const toPermiso = (r: PermisoOrmEntity): Permiso =>
     jefeEstado: (r.jefe_estado ?? 'no_aplica') as EstadoJefe,
     jefeObservacion: r.jefe_observacion ?? null,
     jefeFecha: r.jefe_fecha ?? null,
+    jefeResueltoPor: r.jefe_resuelto_por ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   });
@@ -193,6 +194,7 @@ export class TypeOrmPermisoRepository extends PermisoRepository {
       jefe_estado: p.jefeEstado,
       jefe_observacion: p.jefeObservacion,
       jefe_fecha: p.jefeFecha,
+      jefe_resuelto_por: p.jefeResueltoPor,
     };
     if (p.fechaSolicitud) data.fecha_solicitud = p.fechaSolicitud;
     if (p.updatedAt) data.updated_at = p.updatedAt;

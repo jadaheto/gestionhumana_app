@@ -39,6 +39,8 @@ export class PermisoOrmEntity {
   @Column({ type: 'varchar', length: 20, default: 'no_aplica' }) jefe_estado!: string;
   @Column({ type: 'text', nullable: true }) jefe_observacion!: string | null;
   @Column({ type: 'timestamp', nullable: true, transformer: timestampTransformer }) jefe_fecha!: string | null;
+  /** Quién registró la respuesta del jefe (el jefe, o un administrador en su nombre). */
+  @Column({ type: 'int', nullable: true }) jefe_resuelto_por!: number | null;
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', transformer: timestampTransformer }) created_at!:
     string | null;
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', transformer: timestampTransformer }) updated_at!:

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Clock } from '../../../../shared/application/ports/clock.port';
 import { FileStorage } from '../../../../shared/application/ports/file-storage.port';
 import { UseCase } from '../../../../shared/application/use-case';
-import { Actor, actorFullName } from '../../../../shared/domain/actor';
+import { Actor, actorFullName, isAdmin } from '../../../../shared/domain/actor';
 import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../../../shared/domain/domain-error';
 import { DiasHabilesCalculator } from '../../domain/dias-habiles.calculator';
 import { Permiso } from '../../domain/permiso';
@@ -160,6 +160,8 @@ export class EsJefeUseCase implements UseCase<Actor, { esJefe: boolean }> {
 /**
  * Respuesta del jefe inmediato (primer paso). Si da el visto bueno, la solicitud pasa a
  * Gestión Humana y se notifica a los administradores; si la rechaza, queda cerrada.
+ * Un administrador puede dar el visto bueno en nombre del jefe (p. ej. si está ausente),
+ * dejando el motivo; el jefe queda notificado.
  */
 @Injectable()
 export class ResolverSolicitudComoJefeUseCase implements UseCase<
@@ -177,18 +179,43 @@ export class ResolverSolicitudComoJefeUseCase implements UseCase<
   async execute(input: ResolverSolicitudInput & { aprobar: boolean }): Promise<PermisoDto> {
     const permiso = await this.permisos.findById(input.permisoId);
     if (!permiso) throw new NotFoundError('Solicitud', input.permisoId);
-    if (permiso.props.jefeId !== input.actor.id) {
+    const esElJefe = permiso.props.jefeId === input.actor.id;
+    const enNombre = !esElJefe && isAdmin(input.actor) && input.aprobar;
+    if (!esElJefe && !enNombre) {
       throw new ForbiddenError('Sólo el jefe inmediato del colaborador puede responder esta solicitud.');
     }
     const ahora = toTimestamp(this.clock.now());
     const observacion = input.observacion ?? null;
+    const tipo = tipoLegible(permiso.tipoPermiso);
+
+    if (enNombre) {
+      const saved = await this.permisos.save(permiso.aprobarEnNombreDelJefe(input.actor.id, observacion, ahora));
+      const admin = actorFullName(input.actor);
+      if (saved.props.jefeId) {
+        await this.notificaciones.crear({
+          userId: saved.props.jefeId,
+          titulo: 'Solicitud aprobada en tu nombre',
+          mensaje: `${admin} (Gestión Humana) dio el visto bueno en tu nombre a una solicitud de ${tipo} de tu equipo`,
+          tipo: 'solicitud',
+          link: LINK_JEFE_SOLICITUDES,
+        });
+      }
+      await this.notificaciones.crear({
+        userId: saved.userId,
+        titulo: 'Tu solicitud avanzó',
+        mensaje: `Gestión Humana dio el visto bueno en nombre de tu jefe a tu solicitud de ${tipo}; falta la aprobación final`,
+        tipo: 'solicitud',
+        link: '/solicitudes',
+      });
+      return toPermisoDto(saved, this.calculadora);
+    }
+
     const resuelto = input.aprobar
       ? permiso.aprobarComoJefe(observacion, ahora)
       : permiso.rechazarComoJefe(observacion, ahora);
     const saved = await this.permisos.save(resuelto);
 
     const jefe = actorFullName(input.actor);
-    const tipo = tipoLegible(saved.tipoPermiso);
     if (input.aprobar) {
       for (const adminId of await this.usuarios.findAdminsActivosIds()) {
         await this.notificaciones.crear({

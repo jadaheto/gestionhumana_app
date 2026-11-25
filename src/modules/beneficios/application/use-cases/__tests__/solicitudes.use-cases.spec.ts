@@ -181,6 +181,7 @@ describe('Casos de uso de solicitudes', () => {
         jefeEstado: 'aprobado',
         jefeObservacion: 'De acuerdo',
         jefeFecha: '2026-10-08 10:00:00',
+        jefeEnNombre: false,
         etapa: 'gestion_humana',
       });
       // Se avisa a Gestión Humana (admin 1) y al solicitante (2).
@@ -191,6 +192,36 @@ describe('Casos de uso de solicitudes', () => {
 
       const final = await aprobar.execute({ actor: adminActor, permisoId: dto.id });
       expect(final).toMatchObject({ estado: 'aprobado', aprobadoPor: adminActor.id, etapa: 'finalizada' });
+    });
+
+    it('un administrador puede dar el visto bueno en nombre del jefe, con motivo, y luego aprobar', async () => {
+      const dto = await crear.execute(permisoInput);
+      notificaciones.creadas.length = 0;
+      await expect(resolverJefe.execute({ actor: adminActor, permisoId: dto.id, aprobar: true })).rejects.toThrow(
+        'Indica el motivo por el que apruebas en nombre del jefe inmediato.',
+      );
+      // En nombre del jefe sólo se aprueba: el rechazo sigue siendo del jefe.
+      await expect(
+        resolverJefe.execute({ actor: adminActor, permisoId: dto.id, observacion: 'x', aprobar: false }),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+
+      const visto = await resolverJefe.execute({
+        actor: adminActor,
+        permisoId: dto.id,
+        observacion: 'Jefe en vacaciones',
+        aprobar: true,
+      });
+      expect(visto).toMatchObject({
+        estado: 'pendiente',
+        jefeEstado: 'aprobado',
+        jefeEnNombre: true,
+        jefeObservacion: 'Jefe en vacaciones',
+        etapa: 'gestion_humana',
+      });
+      expect(permisos.items[0].props.jefeResueltoPor).toBe(adminActor.id);
+      // Se avisa al jefe (9) y al solicitante (2).
+      expect(notificaciones.creadas.map((n) => n.userId)).toEqual([9, 2]);
+      expect((await aprobar.execute({ actor: adminActor, permisoId: dto.id })).estado).toBe('aprobado');
     });
 
     it('el rechazo del jefe cierra la solicitud sin pasar por Gestión Humana', async () => {
