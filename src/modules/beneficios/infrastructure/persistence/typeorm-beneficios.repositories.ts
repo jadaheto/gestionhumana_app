@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { Incapacidad } from '../../domain/incapacidad';
-import { EstadoPermiso, Permiso, TipoPermiso } from '../../domain/permiso';
+import { EstadoJefe, EstadoPermiso, Permiso, TipoPermiso } from '../../domain/permiso';
 import {
   FiltroPermisos,
   IncapacidadConNombre,
@@ -41,6 +41,10 @@ const toPermiso = (r: PermisoOrmEntity): Permiso =>
     estado: r.estado as EstadoPermiso,
     aprobadoPor: r.aprobado_por,
     observacionRespuesta: r.observacion_respuesta,
+    jefeId: r.jefe_id ?? null,
+    jefeEstado: (r.jefe_estado ?? 'no_aplica') as EstadoJefe,
+    jefeObservacion: r.jefe_observacion ?? null,
+    jefeFecha: r.jefe_fecha ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   });
@@ -126,23 +130,31 @@ export class TypeOrmPermisoRepository extends PermisoRepository {
       .createQueryBuilder('p')
       .innerJoin('users', 'u', 'u.id = p.user_id')
       .leftJoin('users', 'a', 'a.id = p.aprobado_por')
+      .leftJoin('users', 'j', 'j.id = p.jefe_id')
+      .addSelect('j.first_name', 'j_first_name')
+      .addSelect('j.last_name', 'j_last_name')
       .addSelect('u.first_name', 'u_first_name')
       .addSelect('u.last_name', 'u_last_name')
       .addSelect('a.first_name', 'a_first_name')
       .addSelect('a.last_name', 'a_last_name')
       .orderBy('p.created_at', 'DESC')
       .addOrderBy('p.id', 'DESC');
-    if (filtro.estado) qb.where('p.estado = :estado', { estado: filtro.estado });
+    if (filtro.estado) qb.andWhere('p.estado = :estado', { estado: filtro.estado });
+    if (filtro.jefeId) qb.andWhere('p.jefe_id = :jefeId', { jefeId: filtro.jefeId });
+    if (filtro.jefeEstado) qb.andWhere('p.jefe_estado = :jefeEstado', { jefeEstado: filtro.jefeEstado });
     const { entities, raw } = await qb.getRawAndEntities<{
       u_first_name: string | null;
       u_last_name: string | null;
       a_first_name: string | null;
       a_last_name: string | null;
+      j_first_name: string | null;
+      j_last_name: string | null;
     }>();
     return entities.map((e, i) => ({
       permiso: toPermiso(e),
       colaborador: nombreCompleto(raw[i]?.u_first_name, raw[i]?.u_last_name),
       aprobador: e.aprobado_por ? nombreCompleto(raw[i]?.a_first_name, raw[i]?.a_last_name) || null : null,
+      jefe: e.jefe_id ? nombreCompleto(raw[i]?.j_first_name, raw[i]?.j_last_name) || null : null,
     }));
   }
 
@@ -177,6 +189,10 @@ export class TypeOrmPermisoRepository extends PermisoRepository {
       estado: p.estado,
       aprobado_por: p.aprobadoPor,
       observacion_respuesta: p.observacionRespuesta,
+      jefe_id: p.jefeId,
+      jefe_estado: p.jefeEstado,
+      jefe_observacion: p.jefeObservacion,
+      jefe_fecha: p.jefeFecha,
     };
     if (p.fechaSolicitud) data.fecha_solicitud = p.fechaSolicitud;
     if (p.updatedAt) data.updated_at = p.updatedAt;

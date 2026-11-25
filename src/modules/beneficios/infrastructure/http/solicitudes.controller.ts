@@ -19,14 +19,18 @@ import { ArchivoSubido, PermisoDto, SuspenderVacacionesResultado } from '../../a
 import {
   AprobarSolicitudUseCase,
   CrearSolicitudUseCase,
+  EsJefeUseCase,
   ListarMisSolicitudesUseCase,
   ListarSolicitudesAdminUseCase,
+  ListarSolicitudesJefeUseCase,
   RechazarSolicitudUseCase,
+  ResolverSolicitudComoJefeUseCase,
   SOPORTES_MAX_BYTES,
   SuspenderVacacionesUseCase,
 } from '../../application/use-cases/solicitudes.use-cases';
 import {
   CrearSolicitudRequestDto,
+  FiltroSolicitudesJefeQueryDto,
   FiltroSolicitudesQueryDto,
   ResolverSolicitudRequestDto,
   SuspenderVacacionesRequestDto,
@@ -47,8 +51,9 @@ export function toArchivoSubido(file?: MulterFile): ArchivoSubido | null {
 
 /**
  * Solicitudes de permisos, vacaciones e incapacidades (legado `Solicitudes.php`).
- * Un funcionario crea y consulta sólo sus solicitudes; el administrador las
- * lista todas y las aprueba, rechaza o suspende (vacaciones).
+ * Un funcionario crea y consulta sólo sus solicitudes. Cada solicitud la aprueba primero el
+ * jefe inmediato (según el organigrama) y luego Gestión Humana (administrador), que además
+ * las lista todas y puede suspender vacaciones.
  */
 @ApiTags('Solicitudes')
 @ApiBearerAuth()
@@ -61,6 +66,9 @@ export class SolicitudesController {
     private readonly aprobar: AprobarSolicitudUseCase,
     private readonly rechazar: RechazarSolicitudUseCase,
     private readonly suspender: SuspenderVacacionesUseCase,
+    private readonly listarJefe: ListarSolicitudesJefeUseCase,
+    private readonly resolverJefe: ResolverSolicitudComoJefeUseCase,
+    private readonly esJefeUseCase: EsJefeUseCase,
   ) {}
 
   @Get('mis-permisos')
@@ -114,10 +122,47 @@ export class SolicitudesController {
     return this.listarAdmin.execute({ estado: query.estado ?? null });
   }
 
+  @Get('jefe/estado')
+  @ApiOperation({ summary: 'Indica si soy jefe (responsable de un área o con solicitudes de mi equipo)' })
+  esJefe(@CurrentUser() actor: Actor): Promise<{ esJefe: boolean }> {
+    return this.esJefeUseCase.execute(actor);
+  }
+
+  @Get('jefe')
+  @ApiOperation({ summary: 'Solicitudes de mi equipo (soy el jefe inmediato), filtrables por mi visto bueno' })
+  delEquipo(@CurrentUser() actor: Actor, @Query() query: FiltroSolicitudesJefeQueryDto): Promise<PermisoDto[]> {
+    return this.listarJefe.execute({ actor, estado: query.estado ?? null });
+  }
+
+  @Post(':id/jefe/aprobar')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Visto bueno del jefe inmediato: la solicitud pasa a Gestión Humana' })
+  aprobarComoJefe(
+    @CurrentUser() actor: Actor,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ResolverSolicitudRequestDto,
+  ): Promise<PermisoDto> {
+    return this.resolverJefe.execute({ actor, permisoId: id, observacion: dto.observacion ?? null, aprobar: true });
+  }
+
+  @Post(':id/jefe/rechazar')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Rechazo del jefe inmediato: cierra la solicitud' })
+  rechazarComoJefe(
+    @CurrentUser() actor: Actor,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ResolverSolicitudRequestDto,
+  ): Promise<PermisoDto> {
+    return this.resolverJefe.execute({ actor, permisoId: id, observacion: dto.observacion ?? null, aprobar: false });
+  }
+
   @Post(':id/aprobar')
   @Roles('admin')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Aprobar una solicitud pendiente (vacaciones: valida días hábiles y saldo)' })
+  @ApiOperation({
+    summary:
+      'Aprobación final de Gestión Humana, tras el visto bueno del jefe (vacaciones: valida días hábiles y saldo)',
+  })
   aprobarSolicitud(
     @CurrentUser() actor: Actor,
     @Param('id', ParseIntPipe) id: number,

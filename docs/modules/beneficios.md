@@ -96,3 +96,17 @@ Errores: 400 validación, 403 rol, 404 inexistente, 422 regla de negocio (`code:
 ## Tests
 `npx jest src/modules/beneficios` — dominio (festivos 2025/2026, días hábiles, entidades, saldo, suspensión),
 casos de uso con repositorios en memoria y controladores con `createTestApp` (roles, validación, multipart).
+
+## Solicitudes: aprobación en dos pasos (jefe inmediato → Gestión Humana)
+- Al crear la solicitud se resuelve el **jefe inmediato** con el organigrama (`UsuariosPort.findJefeInmediatoId`): responsable
+  activo del área del colaborador; si no hay o es el mismo colaborador, el de la dependencia superior (`areas.padre_id`), y así
+  hacia arriba. Se guarda en `permisos.jefe_id` con `jefe_estado = pendiente` y se notifica al jefe.
+- **Jefe**: `GET /solicitudes/jefe`, `POST /solicitudes/:id/jefe/aprobar|rechazar` (sólo el jefe asignado). El visto bueno deja
+  la solicitud `pendiente` con `jefe_estado = aprobado` y notifica a los administradores; el rechazo la cierra (`rechazado`).
+- **Gestión Humana** (admin): `POST /solicitudes/:id/aprobar|rechazar` sólo cuando el jefe ya aprobó o no aplica; antes
+  responde "La solicitud aún espera el visto bueno del jefe inmediato".
+- Sin jefe en el organigrama (`jefe_estado = no_aplica`) la solicitud va directo a Gestión Humana, igual que las anteriores a la
+  migración `1797000000000-SolicitudesJefeInmediato`.
+- El DTO expone `jefeId`, `jefeEstado`, `jefeObservacion`, `jefeFecha`, `jefe` y `etapa` (`jefe` | `gestion_humana` | `finalizada`).
+- `GET /solicitudes/jefe/estado` → `{ esJefe }`: verdadero si el usuario es responsable de un área activa o tiene solicitudes
+  asignadas como jefe; el frontend lo usa para mostrar u ocultar la bandeja del equipo.

@@ -68,6 +68,14 @@ export class FiltroSolicitudesQueryDto {
   estado?: string;
 }
 
+export class FiltroSolicitudesJefeQueryDto {
+  @ApiPropertyOptional({ enum: ['pendiente', 'aprobado', 'rechazado'], description: 'Estado del visto bueno del jefe' })
+  @emptyToUndefined()
+  @IsOptional()
+  @IsIn(['pendiente', 'aprobado', 'rechazado'])
+  estado?: string;
+}
+
 export class RegistrarIncapacidadRequestDto {
   @ApiPropertyOptional({ description: 'Colaborador (sólo administradores)' })
   @emptyToUndefined()

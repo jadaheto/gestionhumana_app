@@ -5,9 +5,12 @@ import { adminActor, createTestApp, funcionarioActor } from '../../../../../shar
 import {
   AprobarSolicitudUseCase,
   CrearSolicitudUseCase,
+  EsJefeUseCase,
   ListarMisSolicitudesUseCase,
   ListarSolicitudesAdminUseCase,
+  ListarSolicitudesJefeUseCase,
   RechazarSolicitudUseCase,
+  ResolverSolicitudComoJefeUseCase,
   SuspenderVacacionesUseCase,
 } from '../../../application/use-cases/solicitudes.use-cases';
 import { SolicitudesController } from '../solicitudes.controller';
@@ -21,6 +24,8 @@ function providers() {
   };
   const listarMias = { execute: jest.fn().mockResolvedValue([]) };
   const listarAdmin = { execute: jest.fn().mockResolvedValue([]) };
+  const listarJefe = { execute: jest.fn().mockResolvedValue([]) };
+  const resolverJefe = { execute: jest.fn().mockResolvedValue({ id: 1, estado: 'pendiente', jefeEstado: 'aprobado' }) };
   return {
     crear,
     aprobar,
@@ -28,7 +33,12 @@ function providers() {
     suspender,
     listarMias,
     listarAdmin,
+    listarJefe,
+    resolverJefe,
     list: [
+      { provide: EsJefeUseCase, useValue: { execute: jest.fn().mockResolvedValue({ esJefe: true }) } },
+      { provide: ListarSolicitudesJefeUseCase, useValue: listarJefe },
+      { provide: ResolverSolicitudComoJefeUseCase, useValue: resolverJefe },
       { provide: CrearSolicitudUseCase, useValue: crear },
       { provide: ListarMisSolicitudesUseCase, useValue: listarMias },
       { provide: ListarSolicitudesAdminUseCase, useValue: listarAdmin },
@@ -48,6 +58,30 @@ describe('SolicitudesController (HTTP)', () => {
       app = await createTestApp({ controllers: [SolicitudesController], providers: p.list, actor: funcionarioActor });
     });
     afterAll(() => app.close());
+
+    it('el jefe inmediato lista y responde las solicitudes de su equipo', async () => {
+      await request(app.getHttpServer()).get('/solicitudes/jefe?estado=pendiente').expect(200, []);
+      expect(p.listarJefe.execute).toHaveBeenCalledWith({ actor: funcionarioActor, estado: 'pendiente' });
+      await request(app.getHttpServer()).get('/solicitudes/jefe?estado=raro').expect(400);
+      await request(app.getHttpServer()).get('/solicitudes/jefe/estado').expect(200, { esJefe: true });
+      await request(app.getHttpServer())
+        .post('/solicitudes/5/jefe/aprobar')
+        .send({ observacion: 'De acuerdo' })
+        .expect(200);
+      expect(p.resolverJefe.execute).toHaveBeenLastCalledWith({
+        actor: funcionarioActor,
+        permisoId: 5,
+        observacion: 'De acuerdo',
+        aprobar: true,
+      });
+      await request(app.getHttpServer()).post('/solicitudes/5/jefe/rechazar').send({}).expect(200);
+      expect(p.resolverJefe.execute).toHaveBeenLastCalledWith({
+        actor: funcionarioActor,
+        permisoId: 5,
+        observacion: null,
+        aprobar: false,
+      });
+    });
 
     it('GET /solicitudes/mis-permisos lista las propias usando el actor', async () => {
       await request(app.getHttpServer()).get('/solicitudes/mis-permisos').expect(200, []);

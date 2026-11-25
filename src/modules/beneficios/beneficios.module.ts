@@ -8,9 +8,12 @@ import {
 import {
   AprobarSolicitudUseCase,
   CrearSolicitudUseCase,
+  EsJefeUseCase,
   ListarMisSolicitudesUseCase,
   ListarSolicitudesAdminUseCase,
+  ListarSolicitudesJefeUseCase,
   RechazarSolicitudUseCase,
+  ResolverSolicitudComoJefeUseCase,
   SuspenderVacacionesUseCase,
 } from './application/use-cases/solicitudes.use-cases';
 import { GetResumenVacacionesUseCase, ListarVacacionesUseCase } from './application/use-cases/vacaciones.use-cases';
@@ -71,6 +74,9 @@ import { TypeOrmUsuariosAdapter } from './infrastructure/persistence/typeorm-usu
     ListarSolicitudesAdminUseCase,
     AprobarSolicitudUseCase,
     RechazarSolicitudUseCase,
+    ListarSolicitudesJefeUseCase,
+    ResolverSolicitudComoJefeUseCase,
+    EsJefeUseCase,
     SuspenderVacacionesUseCase,
     GetResumenVacacionesUseCase,
     ListarVacacionesUseCase,

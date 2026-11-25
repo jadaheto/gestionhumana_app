@@ -17,6 +17,16 @@ export type TipoPermiso = (typeof TIPOS_PERMISO)[number];
 export const ESTADOS_PERMISO = ['pendiente', 'aprobado', 'rechazado'] as const;
 export type EstadoPermiso = (typeof ESTADOS_PERMISO)[number];
 
+/**
+ * Visto bueno del jefe inmediato (primer paso de la aprobación):
+ * `no_aplica` = el colaborador no tiene jefe en el organigrama y la solicitud pasa directo a Gestión Humana.
+ */
+export const ESTADOS_JEFE = ['no_aplica', 'pendiente', 'aprobado', 'rechazado'] as const;
+export type EstadoJefe = (typeof ESTADOS_JEFE)[number];
+
+/** Paso en el que está la solicitud: espera al jefe, espera a Gestión Humana o ya se resolvió. */
+export type EtapaPermiso = 'jefe' | 'gestion_humana' | 'finalizada';
+
 export function isTipoPermiso(value: unknown): value is TipoPermiso {
   return typeof value === 'string' && (TIPOS_PERMISO as readonly string[]).includes(value);
 }
@@ -37,6 +47,12 @@ export interface PermisoProps {
   estado: EstadoPermiso;
   aprobadoPor: number | null;
   observacionRespuesta: string | null;
+  /** Jefe inmediato que debe dar el visto bueno (null = sin jefe en el organigrama). */
+  jefeId: number | null;
+  jefeEstado: EstadoJefe;
+  jefeObservacion: string | null;
+  /** `YYYY-MM-DD HH:mm:ss` en que el jefe respondió. */
+  jefeFecha: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -48,6 +64,8 @@ export type NuevoPermisoProps = Pick<PermisoProps, 'userId' | 'justificacion'> &
   horas?: number | null;
   archivoSoporte?: string | null;
   fechaSolicitud?: string | null;
+  /** Jefe inmediato según el organigrama (null = pasa directo a Gestión Humana). */
+  jefeId?: number | null;
 };
 
 /**
@@ -96,6 +114,10 @@ export class Permiso {
       estado: 'pendiente',
       aprobadoPor: null,
       observacionRespuesta: null,
+      jefeId: props.jefeId ?? null,
+      jefeEstado: props.jefeId ? 'pendiente' : 'no_aplica',
+      jefeObservacion: null,
+      jefeFecha: null,
       createdAt: null,
       updatedAt: null,
     });
@@ -124,6 +146,14 @@ export class Permiso {
   get estaPendiente(): boolean {
     return this.props.estado === 'pendiente';
   }
+  /** Sigue pendiente y aún no tiene el visto bueno del jefe inmediato. */
+  get esperaJefe(): boolean {
+    return this.estaPendiente && this.props.jefeEstado === 'pendiente';
+  }
+  get etapa(): EtapaPermiso {
+    if (!this.estaPendiente) return 'finalizada';
+    return this.esperaJefe ? 'jefe' : 'gestion_humana';
+  }
   /** Parte de fecha (`YYYY-MM-DD`) de la fecha de inicio. */
   get fechaInicioDia(): string {
     return this.props.fechaInicio.slice(0, 10);
@@ -136,12 +166,47 @@ export class Permiso {
     return new Permiso({ ...this.props, id });
   }
 
-  /** Marca como aprobada. Sólo las pendientes pueden procesarse. */
+  /** Visto bueno del jefe inmediato: la solicitud sigue pendiente, ahora a cargo de Gestión Humana. */
+  aprobarComoJefe(observacion: string | null, ahora: string): Permiso {
+    this.exigirTurnoDelJefe();
+    return new Permiso({
+      ...this.props,
+      jefeEstado: 'aprobado',
+      jefeObservacion: observacion?.trim() || null,
+      jefeFecha: ahora,
+      updatedAt: ahora,
+    });
+  }
+
+  /** Rechazo del jefe inmediato: cierra la solicitud sin pasar por Gestión Humana. */
+  rechazarComoJefe(observacion: string | null, ahora: string): Permiso {
+    this.exigirTurnoDelJefe();
+    const obs = observacion?.trim() || null;
+    return new Permiso({
+      ...this.props,
+      estado: 'rechazado',
+      aprobadoPor: this.props.jefeId,
+      observacionRespuesta: obs,
+      jefeEstado: 'rechazado',
+      jefeObservacion: obs,
+      jefeFecha: ahora,
+      updatedAt: ahora,
+    });
+  }
+
+  private exigirTurnoDelJefe(): void {
+    if (!this.estaPendiente) throw new InvalidOperationError('La solicitud ya fue procesada.');
+    if (this.props.jefeEstado !== 'pendiente') {
+      throw new InvalidOperationError('El jefe inmediato ya respondió esta solicitud.');
+    }
+  }
+
+  /** Marca como aprobada (Gestión Humana). Sólo las pendientes con visto bueno del jefe pueden procesarse. */
   aprobar(adminId: number, observacion: string | null, ahora: string): Permiso {
     return this.resolver('aprobado', adminId, observacion, ahora);
   }
 
-  /** Marca como rechazada. Sólo las pendientes pueden procesarse. */
+  /** Marca como rechazada (Gestión Humana). Sólo las pendientes con visto bueno del jefe pueden procesarse. */
   rechazar(adminId: number, observacion: string | null, ahora: string): Permiso {
     return this.resolver('rechazado', adminId, observacion, ahora);
   }
@@ -149,6 +214,9 @@ export class Permiso {
   private resolver(estado: EstadoPermiso, adminId: number, observacion: string | null, ahora: string): Permiso {
     if (!this.estaPendiente) {
       throw new InvalidOperationError('La solicitud ya fue procesada.');
+    }
+    if (this.esperaJefe) {
+      throw new InvalidOperationError('La solicitud aún espera el visto bueno del jefe inmediato.');
     }
     return new Permiso({
       ...this.props,

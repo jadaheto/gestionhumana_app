@@ -21,6 +21,13 @@ export abstract class UsuariosPort {
   /** Colaboradores para selects (id, nombre completo, cédula). */
   abstract findColaboradores(): Promise<ColaboradorResumen[]>;
   abstract exists(userId: number): Promise<boolean>;
+  /**
+   * Jefe inmediato según el organigrama: responsable activo del área del colaborador; si no hay
+   * (o es el propio colaborador), el de la dependencia superior, y así hacia arriba. Null si no existe.
+   */
+  abstract findJefeInmediatoId(userId: number): Promise<number | null>;
+  /** El usuario es responsable de alguna área activa o tiene solicitudes asignadas como jefe inmediato. */
+  abstract esJefe(userId: number): Promise<boolean>;
 }
 
 export interface NuevaNotificacion {

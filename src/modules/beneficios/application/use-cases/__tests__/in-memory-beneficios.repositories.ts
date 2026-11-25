@@ -33,10 +33,13 @@ export class InMemoryPermisoRepository extends PermisoRepository {
       [...this.items]
         .reverse()
         .filter((p) => !filtro.estado || p.estado === filtro.estado)
+        .filter((p) => !filtro.jefeId || p.props.jefeId === filtro.jefeId)
+        .filter((p) => !filtro.jefeEstado || p.props.jefeEstado === filtro.jefeEstado)
         .map((permiso) => ({
           permiso,
           colaborador: this.nombres.get(permiso.userId) ?? `Usuario ${permiso.userId}`,
           aprobador: permiso.props.aprobadoPor ? (this.nombres.get(permiso.props.aprobadoPor) ?? null) : null,
+          jefe: permiso.props.jefeId ? (this.nombres.get(permiso.props.jefeId) ?? null) : null,
         })),
     );
   }
@@ -137,6 +140,8 @@ export class FakeUsuariosPort extends UsuariosPort {
   fechasIngreso = new Map<number, string | null>();
   colaboradores: ColaboradorResumen[] = [];
   existentes = new Set<number>([1, 2]);
+  /** userId → jefe inmediato (sin entrada = sin jefe en el organigrama). */
+  jefes = new Map<number, number>();
 
   findAdminsActivosIds(): Promise<number[]> {
     return Promise.resolve([...this.admins]);
@@ -149,6 +154,12 @@ export class FakeUsuariosPort extends UsuariosPort {
   }
   exists(userId: number): Promise<boolean> {
     return Promise.resolve(this.existentes.has(userId));
+  }
+  esJefe(userId: number): Promise<boolean> {
+    return Promise.resolve([...this.jefes.values()].includes(userId));
+  }
+  findJefeInmediatoId(userId: number): Promise<number | null> {
+    return Promise.resolve(this.jefes.get(userId) ?? null);
   }
 }
 

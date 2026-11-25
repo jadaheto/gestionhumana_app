@@ -32,6 +32,16 @@ export interface PermisoDto {
   colaborador: string | null;
   /** Nombre de quien aprobó/rechazó (listados de administración). */
   aprobador: string | null;
+  /** Jefe inmediato que debe dar el visto bueno (null = pasa directo a Gestión Humana). */
+  jefeId: number | null;
+  /** no_aplica | pendiente | aprobado | rechazado */
+  jefeEstado: string;
+  jefeObservacion: string | null;
+  jefeFecha: string | null;
+  /** Nombre del jefe inmediato (listados de administración y del jefe). */
+  jefe: string | null;
+  /** Paso actual: `jefe` (espera al jefe), `gestion_humana` o `finalizada`. */
+  etapa: string;
 }
 
 export interface CrearSolicitudInput {
@@ -42,6 +52,12 @@ export interface CrearSolicitudInput {
   horas?: number | null;
   justificacion: string;
   archivo?: ArchivoSubido | null;
+}
+
+export interface ListarSolicitudesJefeInput {
+  actor: Actor;
+  /** Estado del visto bueno del jefe (pendiente, aprobado, rechazado). */
+  estado?: string | null;
 }
 
 export interface ResolverSolicitudInput {

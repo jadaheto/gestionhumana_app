@@ -8,10 +8,16 @@ export interface PermisoConNombres {
   permiso: Permiso;
   colaborador: string;
   aprobador: string | null;
+  /** Nombre del jefe inmediato asignado a la solicitud. */
+  jefe: string | null;
 }
 
 export interface FiltroPermisos {
   estado?: string | null;
+  /** Sólo las solicitudes asignadas a este jefe inmediato. */
+  jefeId?: number | null;
+  /** Estado del visto bueno del jefe. */
+  jefeEstado?: string | null;
 }
 
 export abstract class PermisoRepository {

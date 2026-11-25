@@ -3,7 +3,7 @@ import { Clock } from '../../../../shared/application/ports/clock.port';
 import { FileStorage } from '../../../../shared/application/ports/file-storage.port';
 import { UseCase } from '../../../../shared/application/use-case';
 import { Actor, actorFullName } from '../../../../shared/domain/actor';
-import { InvalidOperationError, NotFoundError } from '../../../../shared/domain/domain-error';
+import { ForbiddenError, InvalidOperationError, NotFoundError } from '../../../../shared/domain/domain-error';
 import { DiasHabilesCalculator } from '../../domain/dias-habiles.calculator';
 import { Permiso } from '../../domain/permiso';
 import { NotificacionesPort, UsuariosPort } from '../../domain/ports';
@@ -12,6 +12,7 @@ import { VacacionesSaldoCalculator } from '../../domain/vacaciones-saldo';
 import { VacacionesSuspension } from '../../domain/vacaciones-suspension';
 import {
   CrearSolicitudInput,
+  ListarSolicitudesJefeInput,
   PermisoDto,
   ResolverSolicitudInput,
   SuspenderVacacionesInput,
@@ -27,10 +28,14 @@ export const SOPORTES_MAX_BYTES = 5 * 1024 * 1024;
 
 /** Ruta del frontend a la que enlaza la notificación de nueva solicitud. */
 export const LINK_ADMIN_SOLICITUDES = '/solicitudes/admin';
+/** Ruta del frontend donde el jefe inmediato responde las solicitudes de su equipo. */
+export const LINK_JEFE_SOLICITUDES = '/solicitudes/equipo';
 
 /**
  * Crear una solicitud (permiso, vacaciones o incapacidad) para el propio actor.
- * Guarda el soporte en `uploads/soportes` y notifica a los administradores activos.
+ * Guarda el soporte en `uploads/soportes`. La solicitud pasa primero por el jefe inmediato
+ * (según el organigrama) y luego por Gestión Humana; si el colaborador no tiene jefe, va
+ * directo a Gestión Humana (administradores activos).
  */
 @Injectable()
 export class CrearSolicitudUseCase implements UseCase<CrearSolicitudInput, PermisoDto> {
@@ -65,9 +70,20 @@ export class CrearSolicitudUseCase implements UseCase<CrearSolicitudInput, Permi
       justificacion: input.justificacion,
       archivoSoporte,
       fechaSolicitud: this.clock.today(),
+      jefeId: await this.usuarios.findJefeInmediatoId(input.actor.id),
     });
     const saved = await this.permisos.save(permiso);
-    await this.notificarAdmins(input.actor, saved.tipoPermiso);
+    if (saved.props.jefeId) {
+      await this.notificaciones.crear({
+        userId: saved.props.jefeId,
+        titulo: 'Solicitud de tu equipo',
+        mensaje: `${actorFullName(input.actor)} registró una solicitud de ${tipoLegible(saved.tipoPermiso)} que requiere tu visto bueno`,
+        tipo: 'solicitud',
+        link: LINK_JEFE_SOLICITUDES,
+      });
+    } else {
+      await this.notificarAdmins(input.actor, saved.tipoPermiso);
+    }
     return toPermisoDto(saved, this.calculadora);
   }
 
@@ -111,8 +127,89 @@ export class ListarSolicitudesAdminUseCase implements UseCase<{ estado?: string 
   async execute(input: { estado?: string | null }): Promise<PermisoDto[]> {
     const rows = await this.permisos.findAll({ estado: input.estado || null });
     return rows.map((r) =>
-      toPermisoDto(r.permiso, this.calculadora, { colaborador: r.colaborador, aprobador: r.aprobador }),
+      toPermisoDto(r.permiso, this.calculadora, { colaborador: r.colaborador, aprobador: r.aprobador, jefe: r.jefe }),
     );
+  }
+}
+
+/** Solicitudes en las que el actor es el jefe inmediato, filtrables por el estado de su visto bueno. */
+@Injectable()
+export class ListarSolicitudesJefeUseCase implements UseCase<ListarSolicitudesJefeInput, PermisoDto[]> {
+  constructor(
+    private readonly permisos: PermisoRepository,
+    private readonly calculadora: DiasHabilesCalculator,
+  ) {}
+
+  async execute(input: ListarSolicitudesJefeInput): Promise<PermisoDto[]> {
+    const rows = await this.permisos.findAll({ jefeId: input.actor.id, jefeEstado: input.estado || null });
+    return rows.map((r) =>
+      toPermisoDto(r.permiso, this.calculadora, { colaborador: r.colaborador, aprobador: r.aprobador, jefe: r.jefe }),
+    );
+  }
+}
+
+/** Indica si el actor es jefe (responsable de un área o con solicitudes a su cargo): decide si ve la bandeja del equipo. */
+@Injectable()
+export class EsJefeUseCase implements UseCase<Actor, { esJefe: boolean }> {
+  constructor(private readonly usuarios: UsuariosPort) {}
+  async execute(actor: Actor): Promise<{ esJefe: boolean }> {
+    return { esJefe: await this.usuarios.esJefe(actor.id) };
+  }
+}
+
+/**
+ * Respuesta del jefe inmediato (primer paso). Si da el visto bueno, la solicitud pasa a
+ * Gestión Humana y se notifica a los administradores; si la rechaza, queda cerrada.
+ */
+@Injectable()
+export class ResolverSolicitudComoJefeUseCase implements UseCase<
+  ResolverSolicitudInput & { aprobar: boolean },
+  PermisoDto
+> {
+  constructor(
+    private readonly permisos: PermisoRepository,
+    private readonly usuarios: UsuariosPort,
+    private readonly notificaciones: NotificacionesPort,
+    private readonly clock: Clock,
+    private readonly calculadora: DiasHabilesCalculator,
+  ) {}
+
+  async execute(input: ResolverSolicitudInput & { aprobar: boolean }): Promise<PermisoDto> {
+    const permiso = await this.permisos.findById(input.permisoId);
+    if (!permiso) throw new NotFoundError('Solicitud', input.permisoId);
+    if (permiso.props.jefeId !== input.actor.id) {
+      throw new ForbiddenError('Sólo el jefe inmediato del colaborador puede responder esta solicitud.');
+    }
+    const ahora = toTimestamp(this.clock.now());
+    const observacion = input.observacion ?? null;
+    const resuelto = input.aprobar
+      ? permiso.aprobarComoJefe(observacion, ahora)
+      : permiso.rechazarComoJefe(observacion, ahora);
+    const saved = await this.permisos.save(resuelto);
+
+    const jefe = actorFullName(input.actor);
+    const tipo = tipoLegible(saved.tipoPermiso);
+    if (input.aprobar) {
+      for (const adminId of await this.usuarios.findAdminsActivosIds()) {
+        await this.notificaciones.crear({
+          userId: adminId,
+          titulo: 'Solicitud con visto bueno del jefe',
+          mensaje: `${jefe} dio el visto bueno a una solicitud de ${tipo}; falta la aprobación de Gestión Humana`,
+          tipo: 'solicitud',
+          link: LINK_ADMIN_SOLICITUDES,
+        });
+      }
+    }
+    await this.notificaciones.crear({
+      userId: saved.userId,
+      titulo: input.aprobar ? 'Tu jefe aprobó tu solicitud' : 'Tu jefe rechazó tu solicitud',
+      mensaje: input.aprobar
+        ? `${jefe} dio el visto bueno a tu solicitud de ${tipo}; ahora la revisa Gestión Humana`
+        : `${jefe} rechazó tu solicitud de ${tipo}`,
+      tipo: 'solicitud',
+      link: '/solicitudes',
+    });
+    return toPermisoDto(saved, this.calculadora);
   }
 }
 
@@ -135,6 +232,9 @@ export class AprobarSolicitudUseCase implements UseCase<ResolverSolicitudInput, 
     const permiso = await this.permisos.findById(input.permisoId);
     if (!permiso) throw new NotFoundError('Solicitud', input.permisoId);
     if (!permiso.estaPendiente) throw new InvalidOperationError('La solicitud ya fue procesada.');
+    if (permiso.esperaJefe) {
+      throw new InvalidOperationError('La solicitud aún espera el visto bueno del jefe inmediato.');
+    }
 
     if (permiso.esVacaciones) {
       const diasSolicitados = this.calculadora.calcularDiasHabiles(permiso.props.fechaInicio, permiso.props.fechaFin);

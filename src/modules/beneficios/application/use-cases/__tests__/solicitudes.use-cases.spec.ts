@@ -1,13 +1,16 @@
-import { ValidationError } from '../../../../../shared/domain/domain-error';
+import { ForbiddenError, ValidationError } from '../../../../../shared/domain/domain-error';
 import { adminActor, FakeClock, funcionarioActor, InMemoryFileStorage } from '../../../../../shared/testing';
 import { DiasHabilesCalculator } from '../../../domain/dias-habiles.calculator';
 import { VacacionesSaldoCalculator } from '../../../domain/vacaciones-saldo';
 import {
   AprobarSolicitudUseCase,
   CrearSolicitudUseCase,
+  EsJefeUseCase,
   ListarMisSolicitudesUseCase,
   ListarSolicitudesAdminUseCase,
+  ListarSolicitudesJefeUseCase,
   RechazarSolicitudUseCase,
+  ResolverSolicitudComoJefeUseCase,
   SuspenderVacacionesUseCase,
 } from '../solicitudes.use-cases';
 import {
@@ -33,6 +36,8 @@ describe('Casos de uso de solicitudes', () => {
   let aprobar: AprobarSolicitudUseCase;
   let rechazar: RechazarSolicitudUseCase;
   let suspender: SuspenderVacacionesUseCase;
+  let listarJefe: ListarSolicitudesJefeUseCase;
+  let resolverJefe: ResolverSolicitudComoJefeUseCase;
 
   beforeEach(() => {
     permisos = new InMemoryPermisoRepository();
@@ -47,6 +52,8 @@ describe('Casos de uso de solicitudes', () => {
     aprobar = new AprobarSolicitudUseCase(permisos, suspensiones, usuarios, clock, calculadora, saldo);
     rechazar = new RechazarSolicitudUseCase(permisos, clock, calculadora);
     suspender = new SuspenderVacacionesUseCase(permisos, suspensiones, clock, calculadora);
+    listarJefe = new ListarSolicitudesJefeUseCase(permisos, calculadora);
+    resolverJefe = new ResolverSolicitudComoJefeUseCase(permisos, usuarios, notificaciones, clock, calculadora);
   });
 
   const vacacionesInput = (inicio: string, fin: string) => ({
@@ -112,6 +119,108 @@ describe('Casos de uso de solicitudes', () => {
           archivo: { buffer: Buffer.from('x'), originalName: 'virus.exe', mimeType: 'application/octet-stream' },
         }),
       ).rejects.toThrow('Extensión no permitida');
+    });
+  });
+
+  describe('aprobación en dos pasos: jefe inmediato y Gestión Humana', () => {
+    const jefeActor = { ...funcionarioActor, id: 9, username: 'jefe', firstName: 'Marta', lastName: 'Ruiz' };
+    const permisoInput = {
+      actor: funcionarioActor,
+      tipoPermiso: 'personal',
+      fechaInicio: '2026-10-15T08:00',
+      fechaFin: '2026-10-15T12:00',
+      horas: 4,
+      justificacion: 'Cita médica familiar',
+    };
+    beforeEach(() => {
+      usuarios.jefes.set(funcionarioActor.id, jefeActor.id);
+      usuarios.admins = [1];
+    });
+
+    it('sólo quien tiene personas a cargo cuenta como jefe', async () => {
+      const esJefe = new EsJefeUseCase(usuarios);
+      expect(await esJefe.execute(jefeActor)).toEqual({ esJefe: true });
+      expect(await esJefe.execute(funcionarioActor)).toEqual({ esJefe: false });
+    });
+
+    it('la solicitud nace esperando al jefe y sólo él es notificado', async () => {
+      const dto = await crear.execute(permisoInput);
+      expect(dto).toMatchObject({ estado: 'pendiente', jefeId: 9, jefeEstado: 'pendiente', etapa: 'jefe' });
+      expect(notificaciones.creadas).toHaveLength(1);
+      expect(notificaciones.creadas[0]).toMatchObject({ userId: 9, link: '/solicitudes/equipo' });
+    });
+
+    it('Gestión Humana no puede aprobar ni rechazar antes del visto bueno del jefe', async () => {
+      const dto = await crear.execute(permisoInput);
+      await expect(aprobar.execute({ actor: adminActor, permisoId: dto.id })).rejects.toThrow(
+        'La solicitud aún espera el visto bueno del jefe inmediato.',
+      );
+      await expect(rechazar.execute({ actor: adminActor, permisoId: dto.id })).rejects.toThrow(
+        'La solicitud aún espera el visto bueno del jefe inmediato.',
+      );
+    });
+
+    it('sólo el jefe asignado responde; su visto bueno pasa la solicitud a Gestión Humana', async () => {
+      const dto = await crear.execute(permisoInput);
+      await expect(
+        resolverJefe.execute({ actor: { ...jefeActor, id: 33 }, permisoId: dto.id, aprobar: true }),
+      ).rejects.toBeInstanceOf(ForbiddenError);
+
+      expect(await listarJefe.execute({ actor: jefeActor, estado: 'pendiente' })).toHaveLength(1);
+      expect(await listarJefe.execute({ actor: funcionarioActor })).toHaveLength(0);
+
+      notificaciones.creadas.length = 0;
+      const visto = await resolverJefe.execute({
+        actor: jefeActor,
+        permisoId: dto.id,
+        observacion: ' De acuerdo ',
+        aprobar: true,
+      });
+      expect(visto).toMatchObject({
+        estado: 'pendiente',
+        jefeEstado: 'aprobado',
+        jefeObservacion: 'De acuerdo',
+        jefeFecha: '2026-10-08 10:00:00',
+        etapa: 'gestion_humana',
+      });
+      // Se avisa a Gestión Humana (admin 1) y al solicitante (2).
+      expect(notificaciones.creadas.map((n) => n.userId)).toEqual([1, 2]);
+      await expect(resolverJefe.execute({ actor: jefeActor, permisoId: dto.id, aprobar: true })).rejects.toThrow(
+        'El jefe inmediato ya respondió esta solicitud.',
+      );
+
+      const final = await aprobar.execute({ actor: adminActor, permisoId: dto.id });
+      expect(final).toMatchObject({ estado: 'aprobado', aprobadoPor: adminActor.id, etapa: 'finalizada' });
+    });
+
+    it('el rechazo del jefe cierra la solicitud sin pasar por Gestión Humana', async () => {
+      const dto = await crear.execute(permisoInput);
+      notificaciones.creadas.length = 0;
+      const rechazada = await resolverJefe.execute({
+        actor: jefeActor,
+        permisoId: dto.id,
+        observacion: 'Hay cierre de mes',
+        aprobar: false,
+      });
+      expect(rechazada).toMatchObject({
+        estado: 'rechazado',
+        jefeEstado: 'rechazado',
+        aprobadoPor: 9,
+        observacionRespuesta: 'Hay cierre de mes',
+        etapa: 'finalizada',
+      });
+      expect(notificaciones.creadas.map((n) => n.userId)).toEqual([2]);
+      await expect(aprobar.execute({ actor: adminActor, permisoId: dto.id })).rejects.toThrow(
+        'La solicitud ya fue procesada.',
+      );
+    });
+
+    it('sin jefe en el organigrama la solicitud va directo a Gestión Humana', async () => {
+      usuarios.jefes.clear();
+      const dto = await crear.execute(permisoInput);
+      expect(dto).toMatchObject({ jefeId: null, jefeEstado: 'no_aplica', etapa: 'gestion_humana' });
+      expect(notificaciones.creadas[0]).toMatchObject({ userId: 1, link: '/solicitudes/admin' });
+      expect((await aprobar.execute({ actor: adminActor, permisoId: dto.id })).estado).toBe('aprobado');
     });
   });
 

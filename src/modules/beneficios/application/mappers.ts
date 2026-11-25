@@ -8,7 +8,7 @@ import { IncapacidadDto, PermisoDto, SuspensionVacacionesDto, VacacionDto } from
 export function toPermisoDto(
   permiso: Permiso,
   calculadora: DiasHabilesCalculator,
-  nombres: { colaborador?: string | null; aprobador?: string | null } = {},
+  nombres: { colaborador?: string | null; aprobador?: string | null; jefe?: string | null } = {},
 ): PermisoDto {
   const p = permiso.props;
   return {
@@ -29,6 +29,12 @@ export function toPermisoDto(
     diasHabiles: calculadora.calcularDiasHabiles(p.fechaInicio, p.fechaFin),
     colaborador: nombres.colaborador ?? null,
     aprobador: nombres.aprobador ?? null,
+    jefeId: p.jefeId,
+    jefeEstado: p.jefeEstado,
+    jefeObservacion: p.jefeObservacion,
+    jefeFecha: p.jefeFecha,
+    jefe: nombres.jefe ?? null,
+    etapa: permiso.etapa,
   };
 }
 
