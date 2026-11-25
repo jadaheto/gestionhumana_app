@@ -185,7 +185,9 @@ export class GenerarCertificadoLaboralUseCase implements UseCase<
     const cargo = (perfil.cargoNombre || 'Sin cargo').toUpperCase();
     const area = (perfil.areaNombre ?? '').trim();
     const trato = tratamiento(perfil.genero);
-    const identificacion = `, ${trato.identificado} con cédula de ciudadanía No. ${cedulaConPuntos(perfil.cedula)}, `;
+    const cedula = cedulaConPuntos(perfil.cedula);
+    // Sin cédula registrada se omite la frase en lugar de dejar "No. ," en blanco.
+    const identificacion = cedula ? `, ${trato.identificado} con cédula de ciudadanía No. ${cedula}, ` : ', ';
 
     const cuerpo: PdfBlock[] = [];
     if (contratos.length === 1) {

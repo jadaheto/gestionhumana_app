@@ -1,3 +1,5 @@
+import { existsSync } from 'fs';
+import { join } from 'path';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -148,8 +150,13 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
       jefeNombre: val('cert_jefe_nombre', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
       jefeCargo: val('cert_jefe_cargo', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
       firmaPath: await this.resolve(val('cert_firma_png')),
-      logoPath: await this.resolve(val('branding_logo_dark')),
+      logoPath: (await this.resolveLogo(val('branding_logo_dark'))) ?? logoInstitucional(),
     };
+  }
+
+  /** El PDF sólo admite PNG/JPEG: un logo en SVG (o ausente) se sustituye por el institucional. */
+  private async resolveLogo(ruta: string): Promise<string | null> {
+    return /\.(png|jpe?g)$/i.test(ruta) ? this.resolve(ruta) : null;
   }
 
   private async resolve(ruta: string): Promise<string | null> {
@@ -162,6 +169,12 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
       return null;
     }
   }
+}
+
+/** Logo oficial empaquetado con el backend: respaldo cuando no hay logo configurado en la marca. */
+function logoInstitucional(): string | null {
+  const ruta = join(__dirname, '..', 'pdf', 'assets', 'comfasucre-logo.png');
+  return existsSync(ruta) ? ruta : null;
 }
 
 /** Cédulas ya registradas en `users` (normalizadas sin guiones ni puntos), en una sola consulta. */
