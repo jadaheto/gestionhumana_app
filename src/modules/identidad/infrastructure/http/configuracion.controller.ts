@@ -104,7 +104,7 @@ export class ConfiguracionController {
   @Roles('admin')
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Guardar firmante y cargo; firma PNG opcional' })
+  @ApiOperation({ summary: 'Guardar firmante y cargo; firma PNG/JPG opcional, o quitarla' })
   @UseInterceptors(FileInterceptor('firma'))
   guardarCertificado(
     @Body() dto: SaveCertificadoLaboralRequestDto,
@@ -114,6 +114,7 @@ export class ConfiguracionController {
       jefeNombre: dto.jefeNombre,
       jefeCargo: dto.jefeCargo,
       firma: firma ? toArchivo(firma) : null,
+      quitarFirma: dto.quitarFirma === 'true',
     });
   }
 }

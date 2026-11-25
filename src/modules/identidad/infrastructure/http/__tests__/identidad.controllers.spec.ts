@@ -91,7 +91,12 @@ describe('Controladores de Identidad y Configuración (HTTP)', () => {
         .field('jefeNombre', 'María')
         .field('jefeCargo', 'Jefe GH')
         .expect(200);
-      expect(p.saveCert.execute).toHaveBeenCalledWith({ jefeNombre: 'María', jefeCargo: 'Jefe GH', firma: null });
+      expect(p.saveCert.execute).toHaveBeenCalledWith({
+        jefeNombre: 'María',
+        jefeCargo: 'Jefe GH',
+        firma: null,
+        quitarFirma: false,
+      });
       await request(app.getHttpServer())
         .put('/admin/config/certificado-laboral')
         .field('jefeNombre', 'María')
@@ -99,6 +104,13 @@ describe('Controladores de Identidad y Configuración (HTTP)', () => {
         .attach('firma', Buffer.from('x'), 'firma.png')
         .expect(200);
       expect(p.saveCert.execute.mock.calls[1][0].firma.originalName).toBe('firma.png');
+      await request(app.getHttpServer())
+        .put('/admin/config/certificado-laboral')
+        .field('jefeNombre', 'María')
+        .field('jefeCargo', 'Jefe GH')
+        .field('quitarFirma', 'true')
+        .expect(200);
+      expect(p.saveCert.execute.mock.calls[2][0]).toMatchObject({ firma: null, quitarFirma: true });
       await request(app.getHttpServer())
         .put('/admin/config/certificado-laboral')
         .field('jefeNombre', '')

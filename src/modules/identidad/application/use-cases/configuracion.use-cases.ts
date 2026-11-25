@@ -128,7 +128,10 @@ export class GetCertificadoLaboralConfigUseCase implements UseCase<void, Certifi
   }
 }
 
-/** Guarda firmante y cargo; la firma PNG es opcional (si no se envía se conserva la actual). */
+/**
+ * Guarda firmante y cargo. La firma (PNG o JPG) es opcional: si no se envía se
+ * conserva la actual, salvo que se pida quitarla.
+ */
 @Injectable()
 export class SaveCertificadoLaboralConfigUseCase implements UseCase<
   SaveCertificadoLaboralConfigInput,
@@ -143,8 +146,10 @@ export class SaveCertificadoLaboralConfigUseCase implements UseCase<
   async execute(input: SaveCertificadoLaboralConfigInput): Promise<CertificadoLaboralConfigDto> {
     const { jefeNombre, jefeCargo } = validarFirmante(input);
     if (input.firma) {
-      const path = await guardarEnBranding(this.storage, input.firma, ['png']);
+      const path = await guardarEnBranding(this.storage, input.firma, ['png', 'jpg', 'jpeg']);
       await this.settings.set(CLAVES_CERTIFICADO_LABORAL.firmaPng, path);
+    } else if (input.quitarFirma) {
+      await this.settings.set(CLAVES_CERTIFICADO_LABORAL.firmaPng, '');
     }
     await this.settings.set(CLAVES_CERTIFICADO_LABORAL.jefeNombre, jefeNombre);
     await this.settings.set(CLAVES_CERTIFICADO_LABORAL.jefeCargo, jefeCargo);

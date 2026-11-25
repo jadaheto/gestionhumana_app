@@ -119,9 +119,13 @@ describe('Configuración de la aplicación', () => {
       expect(r1).toEqual({ jefeNombre: 'María Pérez', jefeCargo: 'Jefe GH', firma: 'branding/file-1.png' });
       const r2 = await save.execute({ jefeNombre: 'María Pérez', jefeCargo: 'Directora GH', firma: null });
       expect(r2.firma).toBe('branding/file-1.png');
-      await expect(save.execute({ jefeNombre: 'A', jefeCargo: 'B', firma: archivo('firma.jpg') })).rejects.toThrow(
+      await expect(save.execute({ jefeNombre: 'A', jefeCargo: 'B', firma: archivo('firma.gif') })).rejects.toThrow(
         /Extensión no permitida/,
       );
+      const r3 = await save.execute({ jefeNombre: 'A', jefeCargo: 'B', firma: archivo('nueva.jpg') });
+      expect(r3.firma).toMatch(/^branding\/file-\d+\.jpg$/);
+      const r4 = await save.execute({ jefeNombre: 'A', jefeCargo: 'B', firma: null, quitarFirma: true });
+      expect(r4.firma).toBeNull();
     });
   });
 });

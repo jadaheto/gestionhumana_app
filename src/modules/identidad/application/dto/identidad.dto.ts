@@ -32,4 +32,6 @@ export interface SaveCertificadoLaboralConfigInput {
   jefeNombre: string;
   jefeCargo: string;
   firma: ArchivoSubido | null;
+  /** Elimina la firma configurada (se ignora si llega una firma nueva). */
+  quitarFirma?: boolean;
 }

@@ -20,11 +20,12 @@ export class SaveCorreoComunicadosRequestDto {
   @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(255) prodTo!: string;
 }
 
-/** Multipart: `jefeNombre`, `jefeCargo` y archivo opcional `firma` (PNG). */
+/** Multipart: `jefeNombre`, `jefeCargo`, archivo opcional `firma` (PNG/JPG) y `quitarFirma=true` para eliminarla. */
 export class SaveCertificadoLaboralRequestDto {
   @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(200) jefeNombre!: string;
   @ApiProperty() @IsString() @IsNotEmpty() @MaxLength(200) jefeCargo!: string;
   @ApiPropertyOptional({ type: 'string', format: 'binary' }) firma?: unknown;
+  @ApiPropertyOptional({ enum: ['true', 'false'] }) @IsOptional() @IsIn(['true', 'false']) quitarFirma?: string;
 }
 
 /** Multipart con un archivo opcional por slot. */
