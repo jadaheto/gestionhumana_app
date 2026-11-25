@@ -78,15 +78,45 @@ describe('Casos de uso de Perfil', () => {
       skills: ['Excel', ' SQL '],
       joiningDate: '2024-01-15',
     };
-    const res = await update.execute({ actor: funcionarioActor, datos });
+    const actor = { ...adminActor, id: funcionarioActor.id };
+    const res = await update.execute({ actor, datos });
     expect(res.skills).toEqual(['Excel', 'SQL']);
     expect(res.completionPct).toBe(73);
-    await expect(
-      update.execute({ actor: funcionarioActor, datos: { ...datos, email: 'ocupado@x.com' } }),
-    ).rejects.toBeInstanceOf(ConflictError);
-    await expect(
-      update.execute({ actor: funcionarioActor, datos: { ...datos, firstName: '' } }),
-    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(update.execute({ actor, datos: { ...datos, email: 'ocupado@x.com' } })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+    await expect(update.execute({ actor, datos: { ...datos, firstName: '' } })).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('un colaborador no puede cambiar nombres, correo, cargo ni fecha de ingreso desde su perfil', async () => {
+    const update = new UpdatePerfilUseCase(perfiles, colaboradores);
+    const antes = perfiles.items.get(funcionarioActor.id)!.props;
+    const res = await update.execute({
+      actor: funcionarioActor,
+      datos: {
+        firstName: 'Otro',
+        lastName: 'Nombre',
+        email: 'otro@comfasucre.com.co',
+        phoneNumber: '301',
+        designation: 'Gerente',
+        website: null,
+        city: 'Corozal',
+        country: null,
+        zipCode: null,
+        description: null,
+        skills: [],
+        joiningDate: '2010-01-01',
+      },
+    });
+    expect(res).toMatchObject({
+      firstName: antes.firstName,
+      lastName: antes.lastName,
+      email: antes.email,
+      designation: antes.designation,
+      joiningDate: antes.joiningDate,
+      phoneNumber: '301',
+      city: 'Corozal',
+    });
   });
 
   it('actualiza el portafolio', async () => {

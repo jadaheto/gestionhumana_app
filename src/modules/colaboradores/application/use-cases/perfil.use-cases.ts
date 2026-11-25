@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FileStorage } from '../../../../shared/application/ports/file-storage.port';
 import { PasswordHasher } from '../../../../shared/application/ports/password-hasher.port';
 import { UseCase } from '../../../../shared/application/use-case';
-import { Actor } from '../../../../shared/domain/actor';
+import { Actor, isAdmin } from '../../../../shared/domain/actor';
 import { ConflictError, NotFoundError, UnauthorizedError } from '../../../../shared/domain/domain-error';
 import { ColaboradorRepository } from '../../domain/colaborador.repository';
 import {
@@ -62,8 +62,20 @@ export class UpdatePerfilUseCase implements UseCase<UpdatePerfilInput, PerfilDto
     private readonly colaboradores: ColaboradorRepository,
   ) {}
   async execute(input: UpdatePerfilInput): Promise<PerfilDto> {
-    await loadPerfil(this.perfiles, input.actor);
-    const datos = normalizePerfilDatos(input.datos);
+    const actual = await loadPerfil(this.perfiles, input.actor);
+    // Nombres, correo, cargo y fecha de ingreso los administra Gestión Humana: un colaborador
+    // no puede cambiarlos desde su perfil, así que se conservan los valores guardados.
+    const editables = isAdmin(input.actor)
+      ? input.datos
+      : {
+          ...input.datos,
+          firstName: actual.props.firstName,
+          lastName: actual.props.lastName,
+          email: actual.props.email,
+          designation: actual.props.designation,
+          joiningDate: actual.props.joiningDate,
+        };
+    const datos = normalizePerfilDatos(editables);
     if (await this.colaboradores.existsEmail(datos.email, input.actor.id)) {
       throw new ConflictError('El correo electrónico ya está registrado por otro usuario.');
     }

@@ -74,3 +74,7 @@ Ubicación: `backend/src/modules/colaboradores/` (`ColaboradoresModule`, cuatro 
 - `infrastructure/http/`: `ColaboradoresController`, `InfoPersonalController`, `CarnetController`, `PerfilController` + DTOs class-validator/Swagger.
 - `infrastructure/persistence/`: repositorios TypeORM y adaptadores SQL de los puertos.
 - Tests: casos de uso con repositorios en memoria (`application/use-cases/__tests__`), dominio y controladores (`createTestApp` + supertest).
+
+## Perfil: datos que el colaborador no puede cambiar
+`PUT /perfil` conserva los valores guardados de `firstName`, `lastName`, `email`, `designation` y `joiningDate` cuando el
+actor no es administrador (los administra Gestión Humana); el resto del perfil sí es editable por el propio colaborador.
