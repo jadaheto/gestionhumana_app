@@ -113,6 +113,18 @@ describe('Certificado laboral', () => {
     expect(certificados.items[0].datos).toMatchObject({ modo: 'vencido', contratos: [90] });
   });
 
+  it('incluye el lugar de expedición de la cédula cuando está registrado', async () => {
+    const perfiles = new StubPerfilReader();
+    perfiles.perfiles.get(2)!.lugarExpedicionCedula = 'Ovejas – Sucre';
+    perfiles.perfiles.get(2)!.genero = 'masculino';
+    contratos.actual = buildContrato();
+    uc = new GenerarCertificadoLaboralUseCase(perfiles, contratos, certificados, config, pdf, new FakeClock());
+    await uc.execute({ actor: funcionarioActor, input: { modo: 'actual', incluirFunciones: false } });
+    expect(textoDeSpec(pdf.specs[0])).toContain(
+      'Que el señor JUAN PÉREZ, identificado con cédula de ciudadanía No. 1.102.879.310 expedida en Ovejas – Sucre, labora en esta empresa',
+    );
+  });
+
   it('falla con mensaje del legado cuando no hay contratos', async () => {
     await expect(
       uc.execute({ actor: funcionarioActor, input: { modo: 'actual', incluirFunciones: false } }),

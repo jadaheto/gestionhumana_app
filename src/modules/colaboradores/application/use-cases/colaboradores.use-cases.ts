@@ -34,6 +34,7 @@ export function toColaboradorDto(c: Colaborador): ColaboradorDto {
     fullName: c.fullName,
     cedula: p.cedula,
     codigoEmpresa: p.codigoEmpresa,
+    lugarExpedicionCedula: p.lugarExpedicionCedula ?? null,
     phoneNumber: p.phoneNumber,
     telefono: p.telefono,
     celular: p.celular,

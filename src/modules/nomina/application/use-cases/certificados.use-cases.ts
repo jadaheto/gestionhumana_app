@@ -187,7 +187,11 @@ export class GenerarCertificadoLaboralUseCase implements UseCase<
     const trato = tratamiento(perfil.genero);
     const cedula = cedulaConPuntos(perfil.cedula);
     // Sin cédula registrada se omite la frase en lugar de dejar "No. ," en blanco.
-    const identificacion = cedula ? `, ${trato.identificado} con cédula de ciudadanía No. ${cedula}, ` : ', ';
+    const lugar = (perfil.lugarExpedicionCedula ?? '').trim();
+    const expedida = lugar ? ` expedida en ${lugar}` : '';
+    const identificacion = cedula
+      ? `, ${trato.identificado} con cédula de ciudadanía No. ${cedula}${expedida}, `
+      : ', ';
 
     const cuerpo: PdfBlock[] = [];
     if (contratos.length === 1) {

@@ -17,6 +17,8 @@ export interface ColaboradorProps {
   lastName: string;
   cedula: string;
   codigoEmpresa: string | null;
+  /** Municipio y departamento de expedición de la cédula (aparece en el certificado laboral). */
+  lugarExpedicionCedula?: string | null;
   phoneNumber: string | null;
   telefono: string | null;
   celular: string | null;
@@ -104,6 +106,7 @@ export class Colaborador {
       lastName,
       cedula,
       codigoEmpresa: normalizeText(props.codigoEmpresa),
+      lugarExpedicionCedula: normalizeText(props.lugarExpedicionCedula),
       phoneNumber: normalizeText(props.phoneNumber),
       telefono: normalizeText(props.telefono),
       celular: normalizeText(props.celular),

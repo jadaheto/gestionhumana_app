@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
     -- Campos nuevos para Gestión Humana
     cedula VARCHAR(20),
     codigo_empresa VARCHAR(20),
+    lugar_expedicion_cedula VARCHAR(120),
     sede_id INT,
     area_id INT,
     cargo_id INT,

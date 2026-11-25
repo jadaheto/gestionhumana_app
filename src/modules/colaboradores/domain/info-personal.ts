@@ -243,6 +243,7 @@ export interface DatosBasicos extends DatosBasicosProps {
   lastName: string;
   email: string;
   cedula: string | null;
+  lugarExpedicionCedula?: string | null;
   codigoEmpresa: string | null;
   fechaNacimiento: string | null;
   fechaIngreso: string | null;

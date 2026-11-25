@@ -32,6 +32,12 @@ export class SaveColaboradorRequestDto {
   @IsString()
   @MaxLength(20)
   codigoEmpresa?: string;
+  @ApiPropertyOptional({ maxLength: 120, example: 'Ovejas – Sucre' })
+  @emptyToUndefined()
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  lugarExpedicionCedula?: string;
   @ApiPropertyOptional({ maxLength: 20 })
   @emptyToUndefined()
   @IsOptional()
@@ -146,6 +152,7 @@ export function toSaveColaboradorInput(dto: SaveColaboradorRequestDto) {
     email: dto.email,
     cedula: dto.cedula,
     codigoEmpresa: dto.codigoEmpresa ?? null,
+    lugarExpedicionCedula: dto.lugarExpedicionCedula ?? null,
     phoneNumber: dto.phoneNumber ?? null,
     telefono: dto.telefono ?? null,
     celular: dto.celular ?? null,

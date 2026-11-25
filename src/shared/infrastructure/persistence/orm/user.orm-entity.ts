@@ -39,6 +39,7 @@ export class UserOrmEntity {
   // Campos de Gestión Humana
   @Column({ type: 'varchar', length: 20, nullable: true }) cedula!: string | null;
   @Column({ type: 'varchar', length: 20, nullable: true }) codigo_empresa!: string | null;
+  @Column({ type: 'varchar', length: 120, nullable: true }) lugar_expedicion_cedula!: string | null;
   @Column({ type: 'int', nullable: true }) sede_id!: number | null;
   @Column({ type: 'int', nullable: true }) area_id!: number | null;
   @Column({ type: 'int', nullable: true }) cargo_id!: number | null;

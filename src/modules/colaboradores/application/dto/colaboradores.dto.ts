@@ -12,6 +12,7 @@ export interface ColaboradorDto {
   fullName: string;
   cedula: string;
   codigoEmpresa: string | null;
+  lugarExpedicionCedula: string | null;
   phoneNumber: string | null;
   telefono: string | null;
   celular: string | null;

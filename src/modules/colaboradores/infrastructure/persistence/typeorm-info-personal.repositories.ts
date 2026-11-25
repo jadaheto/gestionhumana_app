@@ -234,6 +234,7 @@ export class TypeOrmDatosBasicosRepository extends DatosBasicosRepository {
       email: u.email,
       cedula: u.cedula,
       codigoEmpresa: u.codigo_empresa,
+      lugarExpedicionCedula: u.lugar_expedicion_cedula,
       fechaNacimiento: u.fecha_nacimiento,
       fechaIngreso: u.fecha_ingreso,
       direccion: u.direccion,
