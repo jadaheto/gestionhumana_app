@@ -10,6 +10,7 @@ import {
   PerfilRow,
   VacacionAprobadaRow,
 } from '../../domain/dashboard-queries.port';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 type Row = Record<string, unknown>;
 const num = (v: unknown): number => Number(v ?? 0);
@@ -42,10 +43,10 @@ export class SqlDashboardQueries extends DashboardQueries {
   async countColaboradores(estado?: 'activo' | 'inactivo'): Promise<number> {
     const rows: Row[] = estado
       ? await this.dataSource.query(
-          `SELECT COUNT(*) AS total FROM users WHERE role <> 'admin' AND estado_colaborador = $1`,
+          `SELECT COUNT(*) AS total FROM users WHERE ${esColaboradorSql()} AND estado_colaborador = $1`,
           [estado],
         )
-      : await this.dataSource.query(`SELECT COUNT(*) AS total FROM users WHERE role <> 'admin'`);
+      : await this.dataSource.query(`SELECT COUNT(*) AS total FROM users WHERE ${esColaboradorSql()}`);
     return num(rows[0]?.['total']);
   }
 
@@ -134,7 +135,7 @@ export class SqlDashboardQueries extends DashboardQueries {
           AND EXTRACT(DAY FROM COALESCE(mc.fecha_inicio_min, u.fecha_ingreso)) = EXTRACT(DAY FROM $1::date)
           AND EXTRACT(YEAR FROM AGE($1::date, COALESCE(mc.fecha_inicio_min, u.fecha_ingreso))) >= 1
           AND u.estado_colaborador = 'activo'
-          AND u.role <> 'admin'
+          AND ${esColaboradorSql('u')}
         ORDER BY anios DESC, u.first_name ASC`,
       [hoy],
     );

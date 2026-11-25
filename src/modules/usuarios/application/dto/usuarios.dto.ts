@@ -8,6 +8,8 @@ export interface UsuarioDto {
   lastName: string;
   nombreCompleto: string;
   role: UserRole;
+  /** Administrador que además es empleado. */
+  esColaborador: boolean;
   sedeId: number | null;
   sedeNombre: string | null;
   areaId: number | null;
@@ -24,6 +26,7 @@ export interface CreateUsuarioInput {
   firstName: string;
   lastName: string;
   role: string;
+  esColaborador?: boolean | null;
   /** Si se omite, se genera una contraseña temporal que se devuelve una sola vez. */
   password?: string | null;
   sedeId: number | null;
@@ -37,6 +40,7 @@ export interface UpdateUsuarioInput {
   firstName: string;
   lastName: string;
   role: string;
+  esColaborador?: boolean | null;
   sedeId: number | null;
   areaId: number | null;
   cargoId: number | null;

@@ -8,6 +8,7 @@ import {
   SedeOption,
   SedesReader,
 } from '../../domain/ports';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 /** Lectura de `users` por sede (misma regla que `Asistencia_model`: activos y no admin). */
 @Injectable()
@@ -21,7 +22,7 @@ export class TypeOrmColaboradoresSedeReader extends ColaboradoresSedeReader {
       await this.dataSource.query(
         `SELECT id, first_name, last_name, email
            FROM users
-          WHERE role <> 'admin' AND estado_colaborador = 'activo' AND sede_id = $1
+          WHERE ${esColaboradorSql()} AND estado_colaborador = 'activo' AND sede_id = $1
           ORDER BY first_name ASC, last_name ASC`,
         [sedeId],
       );
@@ -33,7 +34,7 @@ export class TypeOrmColaboradoresSedeReader extends ColaboradoresSedeReader {
     if (ident === '') return null;
     const rows: Array<{ id: number }> = await this.dataSource.query(
       `SELECT id FROM users
-        WHERE role <> 'admin' AND sede_id = $1
+        WHERE ${esColaboradorSql()} AND sede_id = $1
           AND (TRIM(cedula) = $2 OR TRIM(codigo_empresa) = $2)
         LIMIT 1`,
       [sedeId, ident],

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Aniversario, ConexionesRepository, Cumpleanero } from '../../domain/conexiones.repository';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 /** Consultas de `Conexion_model` (cumpleaños y aniversarios laborales del día). */
 @Injectable()
@@ -52,7 +53,7 @@ export class TypeOrmConexionesRepository extends ConexionesRepository {
           AND EXTRACT(DAY FROM COALESCE(mc.fecha_inicio_min, u.fecha_ingreso)) = EXTRACT(DAY FROM CURRENT_DATE)
           AND EXTRACT(YEAR FROM AGE(CURRENT_DATE, COALESCE(mc.fecha_inicio_min, u.fecha_ingreso))) >= 1
           AND u.estado_colaborador = 'activo'
-          AND u.role != 'admin'
+          AND ${esColaboradorSql('u')}
         ORDER BY anios DESC, u.first_name ASC`,
     );
     return rows.map((r) => ({

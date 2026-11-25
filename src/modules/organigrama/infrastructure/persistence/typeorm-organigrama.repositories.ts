@@ -10,6 +10,7 @@ import {
   ImportacionCargosRepository,
   OrganigramaRepository,
 } from '../../domain/repositories';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 interface FilaOrganigramaRaw {
   id: number;
@@ -91,7 +92,7 @@ export class TypeOrmDependenciasRepository extends DependenciasRepository {
               u.id AS user_id, u.first_name, u.last_name, u.profile_image,
               COALESCE(c.nombre, u.designation) AS cargo,
               (SELECT COUNT(*) FROM users x
-                WHERE x.area_id = a.id AND x.estado_colaborador = 'activo' AND x.role <> 'admin') AS total_colaboradores
+                WHERE x.area_id = a.id AND x.estado_colaborador = 'activo' AND ${esColaboradorSql('x')}) AS total_colaboradores
          FROM areas a
          LEFT JOIN users u ON u.id = a.responsable_id
          LEFT JOIN cargos c ON c.id = u.cargo_id
@@ -141,7 +142,7 @@ export class TypeOrmDirectorioRepository extends DirectorioRepository {
   }
 
   async buscar(filtros: FiltrosDirectorio): Promise<ColaboradorDirectorio[]> {
-    const condiciones: string[] = [`u.estado_colaborador = 'activo'`, `u.role <> 'admin'`];
+    const condiciones: string[] = [`u.estado_colaborador = 'activo'`, esColaboradorSql('u')];
     const params: unknown[] = [];
     if (filtros.q) {
       params.push(`%${filtros.q}%`);

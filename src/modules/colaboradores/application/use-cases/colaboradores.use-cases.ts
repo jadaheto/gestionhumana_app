@@ -69,7 +69,10 @@ export function toColaboradorListadoDto(r: ColaboradorConNombres): ColaboradorLi
 /** Comprueba unicidad de correo, cédula y código de empresa (mismos mensajes que el legado). */
 async function assertUnique(repo: ColaboradorRepository, c: Colaborador, excludeId?: number): Promise<void> {
   if (await repo.existsEmail(c.props.email, excludeId)) {
-    throw new ConflictError('El correo electrónico ya está registrado. Verifica y usa otro correo.');
+    throw new ConflictError(
+      'El correo electrónico ya está registrado. Verifica y usa otro correo; si pertenece a un administrador, ' +
+        'márcalo como colaborador en Administración > Usuarios.',
+    );
   }
   if (await repo.existsCedula(c.props.cedula, excludeId)) {
     throw new ConflictError('La cédula ya está registrada en otro colaborador.');

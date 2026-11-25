@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ColaboradorBasico, ColaboradorFinder, SalarioReferenciaReader } from '../../domain/ports';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 interface UserRow {
   id: number;
@@ -28,7 +29,7 @@ export class TypeOrmColaboradorFinder extends ColaboradorFinder {
 
   async search(q: string): Promise<ColaboradorBasico[]> {
     const params: unknown[] = [];
-    let where = `u.role <> 'admin'`;
+    let where = esColaboradorSql('u');
     if (q !== '') {
       params.push(`%${q}%`);
       where += ` AND (u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.cedula ILIKE $1 OR u.codigo_empresa ILIKE $1

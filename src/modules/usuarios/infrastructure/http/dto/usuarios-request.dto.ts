@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { USER_ROLES } from '../../../../../shared/domain/user-role';
 
 export class UpdateUsuarioRequestDto {
@@ -8,6 +19,10 @@ export class UpdateUsuarioRequestDto {
   @ApiProperty({ maxLength: 100 }) @IsString() @IsNotEmpty() @MaxLength(100) lastName!: string;
   @ApiProperty({ maxLength: 255 }) @IsEmail() @MaxLength(255) email!: string;
   @ApiProperty({ enum: USER_ROLES }) @IsIn([...USER_ROLES]) role!: string;
+  @ApiPropertyOptional({ description: 'Administrador que además es empleado (sólo aplica al rol admin)' })
+  @IsOptional()
+  @IsBoolean()
+  esColaborador?: boolean;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() sedeId?: number | null;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() areaId?: number | null;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() cargoId?: number | null;

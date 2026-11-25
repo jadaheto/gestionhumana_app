@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { EventoSistema, EventosSistemaPort, UsuarioResumen, UsuariosPort } from '../../domain/usuarios.port';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 type Row = Record<string, unknown>;
 const toUsuario = (r: Row): UsuarioResumen => ({
@@ -64,7 +65,7 @@ export class SqlEventosSistemaAdapter extends EventosSistemaPort {
          LEFT JOIN areas a ON a.id = u.area_id
          LEFT JOIN (SELECT user_id, MIN(fecha_inicio) AS fecha_inicio_min FROM contratos WHERE fecha_inicio IS NOT NULL GROUP BY user_id) mc
                 ON mc.user_id = u.id
-        WHERE u.role <> 'admin' AND u.estado_colaborador = 'activo'`,
+        WHERE ${esColaboradorSql('u')} AND u.estado_colaborador = 'activo'`,
     );
     const eventos: EventoSistema[] = [];
     for (const r of rows) {

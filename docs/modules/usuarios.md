@@ -55,3 +55,11 @@ No requiere migraciones nuevas.
 ## Tests
 - `application/use-cases/__tests__/usuarios.use-cases.spec.ts`: reglas de negocio con repositorio en memoria.
 - `infrastructure/http/__tests__/usuarios.controller.spec.ts`: rutas, validación de DTOs, códigos HTTP y roles.
+
+## Administradores que también son colaboradores
+`users.es_colaborador` (migración `1796500000000-AdminEsColaborador`) marca a un administrador que además es empleado. Se
+edita en el formulario de usuario (`esColaborador`, sólo se guarda con rol `admin`). Los listados y conteos de colaboradores
+(colaboradores, organigrama y directorio, dashboard, conexiones, asistencia, endeudamiento, selector de contratos, calendario)
+usan `esColaboradorSql()` (`shared/infrastructure/persistence/es-colaborador.sql.ts`): funcionarios + administradores marcados.
+La sincronización de estado por contratos sigue excluyendo a los administradores (nunca pasan a `inactivo`), y la importación
+de nómina ya no baja de rol a un administrador que figure en nómina: lo marca como colaborador.

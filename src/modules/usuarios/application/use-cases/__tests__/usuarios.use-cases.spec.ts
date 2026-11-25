@@ -113,6 +113,23 @@ describe('Casos de uso de Usuarios', () => {
       expect(dto.sedeNombre).toBeNull();
     });
 
+    it('marca a un administrador como colaborador y la descarta para un funcionario', async () => {
+      const creado = await crear.execute({ ...base, role: 'admin', esColaborador: true });
+      expect(creado.esColaborador).toBe(true);
+      const dto = await new UpdateUsuarioUseCase(repo).execute({
+        id: creado.id,
+        email: base.email,
+        firstName: 'Juan',
+        lastName: 'Pérez',
+        role: 'funcionario',
+        esColaborador: true,
+        sedeId: null,
+        areaId: null,
+        cargoId: null,
+      });
+      expect(dto.esColaborador).toBe(false);
+    });
+
     it('rechaza correo usado por otro usuario y usuario inexistente', async () => {
       const a = await crear.execute(base);
       await crear.execute({ ...base, username: 'otro', email: 'otro@x.com' });

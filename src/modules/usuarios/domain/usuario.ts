@@ -8,6 +8,8 @@ export interface UsuarioProps {
   firstName: string;
   lastName: string;
   role: UserRole;
+  /** Administrador que además es empleado (sólo aplica al rol `admin`). */
+  esColaborador: boolean;
   sedeId: number | null;
   areaId: number | null;
   cargoId: number | null;
@@ -26,8 +28,9 @@ export class Usuario {
   private constructor(readonly props: UsuarioProps) {}
 
   static create(
-    props: Omit<UsuarioProps, 'id' | 'estadoColaborador' | 'profileImage'> & {
+    props: Omit<UsuarioProps, 'id' | 'esColaborador' | 'estadoColaborador' | 'profileImage'> & {
       id?: number | null;
+      esColaborador?: boolean | null;
       estadoColaborador?: string | null;
       profileImage?: string | null;
     },
@@ -49,6 +52,7 @@ export class Usuario {
       firstName,
       lastName,
       role: props.role,
+      esColaborador: props.role === 'admin' && props.esColaborador === true,
       sedeId: props.sedeId ?? null,
       areaId: props.areaId ?? null,
       cargoId: props.cargoId ?? null,
@@ -82,7 +86,10 @@ export class Usuario {
 
   /** Devuelve una copia con los datos editables actualizados (el username no cambia). */
   actualizar(
-    cambios: Pick<UsuarioProps, 'email' | 'firstName' | 'lastName' | 'role' | 'sedeId' | 'areaId' | 'cargoId'>,
+    cambios: Pick<
+      UsuarioProps,
+      'email' | 'firstName' | 'lastName' | 'role' | 'esColaborador' | 'sedeId' | 'areaId' | 'cargoId'
+    >,
   ): Usuario {
     return Usuario.create({ ...this.props, ...cambios });
   }

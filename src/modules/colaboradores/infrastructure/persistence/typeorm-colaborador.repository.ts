@@ -8,6 +8,7 @@ import { SedeOrmEntity } from '../../../../shared/infrastructure/persistence/orm
 import { UserOrmEntity } from '../../../../shared/infrastructure/persistence/orm/user.orm-entity';
 import { Colaborador } from '../../domain/colaborador';
 import { ColaboradorConNombres, ColaboradorFilters, ColaboradorRepository } from '../../domain/colaborador.repository';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 interface NombresRaw {
   sede_nombre: string | null;
@@ -99,7 +100,7 @@ export class TypeOrmColaboradorRepository extends ColaboradorRepository {
   }
 
   async findAll(filters: ColaboradorFilters): Promise<ColaboradorConNombres[]> {
-    const qb = this.withNames().where('u.role != :admin', { admin: 'admin' });
+    const qb = this.withNames().where(esColaboradorSql('u'));
     if (filters.estado) qb.andWhere('u.estado_colaborador = :estado', { estado: filters.estado });
     if (filters.areaId) qb.andWhere('u.area_id = :areaId', { areaId: filters.areaId });
     if (filters.sedeId) qb.andWhere('u.sede_id = :sedeId', { sedeId: filters.sedeId });

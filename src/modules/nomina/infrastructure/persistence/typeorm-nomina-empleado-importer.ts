@@ -151,11 +151,12 @@ export class TypeOrmNominaEmpleadoImporter extends NominaEmpleadoImporter {
 
     if (found[0]) {
       const userId = Number(found[0].id);
+      // El rol no cambia: un administrador que figura en nómina queda marcado como colaborador.
       // Nota: no se toca codigo_empresa — el "Documento N°" del PDF es el comprobante del período.
       await m.query(
         `UPDATE users
             SET first_name = $1, last_name = $2, designation = $3, cedula = $4, sede_id = $5, area_id = $6, cargo_id = $7,
-                estado_colaborador = 'activo', role = 'funcionario', updated_at = NOW()
+                estado_colaborador = 'activo', es_colaborador = (es_colaborador OR role = 'admin'), updated_at = NOW()
           WHERE id = $8`,
         [firstName, lastName, designation, cedula, sedeId, areaId, cargoId, userId],
       );

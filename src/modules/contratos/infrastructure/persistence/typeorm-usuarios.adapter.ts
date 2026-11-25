@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ColaboradorResumen, UsuariosPort } from '../../domain/ports';
+import { esColaboradorSql } from '../../../../shared/infrastructure/persistence/es-colaborador.sql';
 
 /** Consultas directas a `users` (sin importar el módulo de colaboradores). */
 @Injectable()
@@ -21,7 +22,7 @@ export class TypeOrmUsuariosAdapter extends UsuariosPort {
       `SELECT u.id, u.first_name, u.last_name, u.cedula, c.nombre AS cargo_nombre
            FROM users u
            LEFT JOIN cargos c ON c.id = u.cargo_id
-          WHERE u.role <> 'admin'
+          WHERE ${esColaboradorSql('u')}
           ORDER BY u.first_name ASC, u.last_name ASC`,
     );
     return rows.map((r) => ({
