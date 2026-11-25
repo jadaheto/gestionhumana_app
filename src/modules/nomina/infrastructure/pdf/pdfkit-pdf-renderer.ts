@@ -77,13 +77,35 @@ export class PdfkitPdfRenderer extends PdfRenderer {
             /* logo ilegible: se omite */
           }
         }
-        doc.font('Helvetica').fontSize(8.5).fillColor('#666');
-        const anchoTexto = width * 0.55;
-        const altoTexto = doc.heightOfString(b.text, { width: anchoTexto, align: 'right' });
-        doc.text(b.text, margin + width - anchoTexto, y + (alto - altoTexto) / 2, {
-          width: anchoTexto,
-          align: 'right',
-        });
+        const sellos = b.badges ?? [];
+        let sellosDibujados = 0;
+        if (sellos.length > 0) {
+          const separacion = 12;
+          const altoSello = 26;
+          let x = margin + width - sellos.reduce((a, s) => a + s.width, 0) - separacion * (sellos.length - 1);
+          for (const s of sellos) {
+            try {
+              doc.image(s.path, x, y + (alto - altoSello) / 2, {
+                fit: [s.width, altoSello],
+                align: 'center',
+                valign: 'center',
+              });
+              sellosDibujados++;
+            } catch {
+              /* sello ilegible: se omite */
+            }
+            x += s.width + separacion;
+          }
+        }
+        if (sellosDibujados === 0) {
+          doc.font('Helvetica').fontSize(8.5).fillColor('#666');
+          const anchoTexto = width * 0.55;
+          const altoTexto = doc.heightOfString(b.text, { width: anchoTexto, align: 'right' });
+          doc.text(b.text, margin + width - anchoTexto, y + (alto - altoTexto) / 2, {
+            width: anchoTexto,
+            align: 'right',
+          });
+        }
         doc.x = margin;
         doc.y = y + alto + 8;
         return;

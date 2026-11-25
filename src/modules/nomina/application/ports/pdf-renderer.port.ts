@@ -28,7 +28,14 @@ export type PdfBlock =
       lineGap?: number;
     }
   /** Membrete: logo a la izquierda y leyenda a la derecha en la misma franja. */
-  | { type: 'letterhead'; logoPath: string | null; text: string }
+  | {
+      type: 'letterhead';
+      logoPath: string | null;
+      /** Leyenda de respaldo cuando no hay sellos en imagen. */
+      text: string;
+      /** Sellos (Vigilado Supersubsidio, Asocajas, Fedecajas…) alineados a la derecha, con su ancho en puntos. */
+      badges?: Array<{ path: string; width: number }>;
+    }
   /** Firma centrada (imagen opcional, nombre en negrita y líneas de cargo); no se parte entre páginas. */
   | { type: 'signature'; imagePath: string | null; name: string; lines: string[] }
   | { type: 'keyValue'; rows: Array<[string, string]>; columns?: 1 | 2 }

@@ -55,6 +55,8 @@ export interface CertificadoConfig {
   firmaPath: string | null;
   /** Ruta absoluta del logo si existe en disco. */
   logoPath: string | null;
+  /** Sellos del membrete (Vigilado Supersubsidio, Asocajas, Fedecajas) con su ancho en puntos. */
+  sellos?: Array<{ path: string; width: number }>;
 }
 
 export abstract class CertificadoConfigReader {

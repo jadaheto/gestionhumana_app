@@ -262,7 +262,7 @@ export class GenerarCertificadoLaboralUseCase implements UseCase<
 
     const ahora = this.clock.now();
     const blocks: PdfBlock[] = [
-      { type: 'letterhead', logoPath: cfg.logoPath, text: ENTIDAD.vigilancia },
+      { type: 'letterhead', logoPath: cfg.logoPath, text: ENTIDAD.vigilancia, badges: cfg.sellos ?? [] },
       { type: 'spacer', height: 26 },
       {
         type: 'paragraph',

@@ -151,6 +151,7 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
       jefeCargo: val('cert_jefe_cargo', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
       firmaPath: await this.resolve(val('cert_firma_png')),
       logoPath: (await this.resolveLogo(val('branding_logo_dark'))) ?? logoInstitucional(),
+      sellos: sellosInstitucionales(),
     };
   }
 
@@ -171,10 +172,21 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
   }
 }
 
+const ASSETS_PDF = join(__dirname, '..', 'pdf', 'assets');
+
 /** Logo oficial empaquetado con el backend: respaldo cuando no hay logo configurado en la marca. */
 function logoInstitucional(): string | null {
-  const ruta = join(__dirname, '..', 'pdf', 'assets', 'comfasucre-logo.png');
+  const ruta = join(ASSETS_PDF, 'comfasucre-logo.png');
   return existsSync(ruta) ? ruta : null;
+}
+
+/** Sellos del membrete, en el orden del certificado impreso; el ancho compensa la proporción de cada imagen. */
+function sellosInstitucionales(): Array<{ path: string; width: number }> {
+  return [
+    { path: join(ASSETS_PDF, 'vigilado-supersubsidio.png'), width: 104 },
+    { path: join(ASSETS_PDF, 'asocajas.png'), width: 62 },
+    { path: join(ASSETS_PDF, 'fedecajas.png'), width: 68 },
+  ].filter((s) => existsSync(s.path));
 }
 
 /** Cédulas ya registradas en `users` (normalizadas sin guiones ni puntos), en una sola consulta. */
