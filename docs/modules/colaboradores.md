@@ -78,3 +78,6 @@ Ubicación: `backend/src/modules/colaboradores/` (`ColaboradoresModule`, cuatro 
 ## Perfil: datos que el colaborador no puede cambiar
 `PUT /perfil` conserva los valores guardados de `firstName`, `lastName`, `email`, `designation` y `joiningDate` cuando el
 actor no es administrador (los administra Gestión Humana); el resto del perfil sí es editable por el propio colaborador.
+
+## Datos básicos: afiliaciones que el colaborador no puede cambiar
+`PUT /info-personal/datos-basicos` conserva `arl` y `cajaCompensacion` cuando el actor no es administrador.

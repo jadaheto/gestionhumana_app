@@ -16,6 +16,7 @@ import { ApiBearerAuth, ApiOperation, ApiProduces, ApiQuery, ApiTags } from '@ne
 import type { Response } from 'express';
 import type { Actor } from '../../../../shared/domain/actor';
 import { CurrentUser } from '../../../../shared/infrastructure/http/decorators/current-user.decorator';
+import { Roles } from '../../../../shared/infrastructure/http/decorators/roles.decorator';
 import {
   ArchivoPdfDto,
   CertificadoDto,
@@ -45,6 +46,7 @@ import {
 import {
   GenerarCertificadoIngresosRequestDto,
   GenerarCertificadoLaboralRequestDto,
+  CuentasQueryDto,
   SaveCuentaBancariaRequestDto,
 } from './dto/nomina-request.dto';
 
@@ -82,19 +84,21 @@ export class MiPuestoController {
 
   // ---------- Cuentas bancarias ----------
   @Get('cuentas')
-  @ApiOperation({ summary: 'Listar mis cuentas bancarias' })
-  cuentas(@CurrentUser() actor: Actor): Promise<CuentaBancariaDto[]> {
-    return this.listCuentas.execute(actor);
+  @ApiOperation({ summary: 'Listar mis cuentas bancarias (o las de un colaborador, si es admin)' })
+  cuentas(@CurrentUser() actor: Actor, @Query() q: CuentasQueryDto): Promise<CuentaBancariaDto[]> {
+    return this.listCuentas.execute({ actor, userId: q.userId });
   }
 
   @Post('cuentas')
-  @ApiOperation({ summary: 'Registrar una cuenta bancaria' })
+  @Roles('admin')
+  @ApiOperation({ summary: 'Registrar la cuenta bancaria de un colaborador (sólo administradores)' })
   crearCuenta(@CurrentUser() actor: Actor, @Body() dto: SaveCuentaBancariaRequestDto): Promise<CuentaBancariaDto> {
     return this.saveCuenta.execute({ actor, input: dto });
   }
 
   @Put('cuentas/:id')
-  @ApiOperation({ summary: 'Editar una cuenta bancaria propia' })
+  @Roles('admin')
+  @ApiOperation({ summary: 'Editar la cuenta bancaria de un colaborador (sólo administradores)' })
   editarCuenta(
     @CurrentUser() actor: Actor,
     @Param('id', ParseIntPipe) id: number,
@@ -105,9 +109,14 @@ export class MiPuestoController {
 
   @Delete('cuentas/:id')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Eliminar una cuenta bancaria propia' })
-  eliminarCuenta(@CurrentUser() actor: Actor, @Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.deleteCuenta.execute({ actor, id });
+  @Roles('admin')
+  @ApiOperation({ summary: 'Eliminar la cuenta bancaria de un colaborador (sólo administradores)' })
+  eliminarCuenta(
+    @CurrentUser() actor: Actor,
+    @Param('id', ParseIntPipe) id: number,
+    @Query() q: CuentasQueryDto,
+  ): Promise<void> {
+    return this.deleteCuenta.execute({ actor, id, userId: q.userId });
   }
 
   // ---------- Desprendibles ----------

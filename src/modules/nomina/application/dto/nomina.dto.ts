@@ -13,6 +13,8 @@ export interface CuentaBancariaDto {
 }
 export interface SaveCuentaInput {
   id?: number;
+  /** Colaborador dueño de la cuenta (por defecto, el propio administrador). */
+  userId?: number;
   banco: string;
   tipoCuenta: string;
   numeroCuenta: string;

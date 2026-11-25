@@ -50,6 +50,14 @@ describe('Casos de uso de Información personal', () => {
       expect(res.eps).toBe('Sura');
       expect(res.numeroHijos).toBe(2);
       expect(res.firstName).toBe('Juan');
+      // ARL y caja de compensación las asigna la empresa: el colaborador no las cambia.
+      const bloqueado = await update.execute({
+        actor: funcionarioActor,
+        datos: { arl: 'Otra ARL', cajaCompensacion: 'Otra caja', fondoPension: 'Porvenir' },
+      });
+      expect(bloqueado.arl).toBe(res.arl);
+      expect(bloqueado.cajaCompensacion).toBe(res.cajaCompensacion);
+      expect(bloqueado.fondoPension).toBe('Porvenir');
       await expect(update.execute({ actor: funcionarioActor, datos: { numeroHijos: -1 } })).rejects.toBeInstanceOf(
         ValidationError,
       );

@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { createTestApp, funcionarioActor } from '../../../../../shared/testing';
+import { adminActor, createTestApp, funcionarioActor } from '../../../../../shared/testing';
 import { NotFoundError } from '../../../../../shared/domain/domain-error';
 import {
   GenerarCertificadoIngresosUseCase,
@@ -69,36 +69,61 @@ describe('MiPuestoController (HTTP)', () => {
     await request(app.getHttpServer())
       .get('/mi-puesto/cuentas')
       .expect(200, [{ id: 1, banco: 'Bancolombia' }]);
-    expect(p.listCuentas.execute).toHaveBeenCalledWith(funcionarioActor);
+    expect(p.listCuentas.execute).toHaveBeenCalledWith({ actor: funcionarioActor, userId: undefined });
   });
 
-  it('POST /mi-puesto/cuentas valida el cuerpo y pasa el actor', async () => {
-    await request(app.getHttpServer())
-      .post('/mi-puesto/cuentas')
-      .send({ banco: 'Bancolombia', tipoCuenta: 'ahorros', numeroCuenta: '123456' })
-      .expect(201);
-    expect(p.saveCuenta.execute).toHaveBeenCalledWith({
-      actor: funcionarioActor,
-      input: { banco: 'Bancolombia', tipoCuenta: 'ahorros', numeroCuenta: '123456' },
-    });
-    const res = await request(app.getHttpServer())
-      .post('/mi-puesto/cuentas')
-      .send({ banco: 'X', tipoCuenta: 'otra', numeroCuenta: '1' })
-      .expect(400);
-    expect(Array.isArray(res.body.message)).toBe(true);
+  it('un colaborador no puede registrar, editar ni eliminar cuentas bancarias', async () => {
+    const cuenta = { banco: 'Bancolombia', tipoCuenta: 'ahorros', numeroCuenta: '123456' };
+    await request(app.getHttpServer()).post('/mi-puesto/cuentas').send(cuenta).expect(403);
+    await request(app.getHttpServer()).put('/mi-puesto/cuentas/7').send(cuenta).expect(403);
+    await request(app.getHttpServer()).delete('/mi-puesto/cuentas/7').expect(403);
+    expect(p.saveCuenta.execute).not.toHaveBeenCalled();
+    expect(p.deleteCuenta.execute).not.toHaveBeenCalled();
   });
 
-  it('PUT y DELETE /mi-puesto/cuentas/:id', async () => {
-    await request(app.getHttpServer())
-      .put('/mi-puesto/cuentas/7')
-      .send({ banco: 'B', tipoCuenta: 'corriente', numeroCuenta: '999999' })
-      .expect(200);
-    expect(p.saveCuenta.execute).toHaveBeenLastCalledWith({
-      actor: funcionarioActor,
-      input: { banco: 'B', tipoCuenta: 'corriente', numeroCuenta: '999999', id: 7 },
+  describe('como administrador', () => {
+    let adminApp: INestApplication;
+    let ap: ReturnType<typeof providers>['p'];
+    beforeAll(async () => {
+      const pr = providers();
+      ap = pr.p;
+      adminApp = await createTestApp({ controllers: [MiPuestoController], providers: pr.list, actor: adminActor });
     });
-    await request(app.getHttpServer()).delete('/mi-puesto/cuentas/7').expect(204);
-    expect(p.deleteCuenta.execute).toHaveBeenCalledWith({ actor: funcionarioActor, id: 7 });
+    afterAll(() => adminApp.close());
+
+    it('GET /mi-puesto/cuentas?userId consulta las cuentas de un colaborador', async () => {
+      await request(adminApp.getHttpServer()).get('/mi-puesto/cuentas?userId=2').expect(200);
+      expect(ap.listCuentas.execute).toHaveBeenCalledWith({ actor: adminActor, userId: 2 });
+    });
+
+    it('POST /mi-puesto/cuentas valida el cuerpo y registra la cuenta del colaborador', async () => {
+      await request(adminApp.getHttpServer())
+        .post('/mi-puesto/cuentas')
+        .send({ banco: 'Bancolombia', tipoCuenta: 'ahorros', numeroCuenta: '123456', userId: 2 })
+        .expect(201);
+      expect(ap.saveCuenta.execute).toHaveBeenCalledWith({
+        actor: adminActor,
+        input: { banco: 'Bancolombia', tipoCuenta: 'ahorros', numeroCuenta: '123456', userId: 2 },
+      });
+      const res = await request(adminApp.getHttpServer())
+        .post('/mi-puesto/cuentas')
+        .send({ banco: 'X', tipoCuenta: 'otra', numeroCuenta: '1' })
+        .expect(400);
+      expect(Array.isArray(res.body.message)).toBe(true);
+    });
+
+    it('PUT y DELETE /mi-puesto/cuentas/:id', async () => {
+      await request(adminApp.getHttpServer())
+        .put('/mi-puesto/cuentas/7')
+        .send({ banco: 'B', tipoCuenta: 'corriente', numeroCuenta: '999999', userId: 2 })
+        .expect(200);
+      expect(ap.saveCuenta.execute).toHaveBeenLastCalledWith({
+        actor: adminActor,
+        input: { banco: 'B', tipoCuenta: 'corriente', numeroCuenta: '999999', userId: 2, id: 7 },
+      });
+      await request(adminApp.getHttpServer()).delete('/mi-puesto/cuentas/7?userId=2').expect(204);
+      expect(ap.deleteCuenta.execute).toHaveBeenCalledWith({ actor: adminActor, id: 7, userId: 2 });
+    });
   });
 
   it('GET /mi-puesto/desprendibles/:id traduce NotFoundError a 404', async () => {

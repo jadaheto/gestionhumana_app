@@ -17,6 +17,21 @@ export class SaveCuentaBancariaRequestDto {
   @ApiProperty({ maxLength: 100, example: 'Bancolombia' }) @IsString() @IsNotEmpty() @MaxLength(100) banco!: string;
   @ApiProperty({ enum: ['ahorros', 'corriente'] }) @IsIn(['ahorros', 'corriente']) tipoCuenta!: string;
   @ApiProperty({ maxLength: 30 }) @IsString() @IsNotEmpty() @MaxLength(30) numeroCuenta!: string;
+  @ApiPropertyOptional({ description: 'Colaborador dueño de la cuenta (por defecto, el propio administrador)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  userId?: number;
+}
+
+export class CuentasQueryDto {
+  @ApiPropertyOptional({ description: 'Colaborador a consultar (sólo administradores)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  userId?: number;
 }
 
 export class GenerarCertificadoLaboralRequestDto {

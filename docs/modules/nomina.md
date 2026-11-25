@@ -95,3 +95,8 @@ modules/nomina/
 
 ## Tests
 `npx jest src/modules/nomina` — 80 tests: parser (fixtures de texto), reglas de importación, casos de uso con repos en memoria, controladores con `createTestApp` (roles/validación/PDF) e integración real pdfkit → pdftotext → parser.
+
+## Cuentas bancarias: las gestiona Gestión Humana
+El colaborador sólo consulta sus cuentas (`GET /mi-puesto/cuentas`). Registrar, editar y eliminar (`POST`, `PUT`, `DELETE
+/mi-puesto/cuentas`) es exclusivo de administradores, que indican el colaborador con `userId` (cuerpo en POST/PUT, query en
+GET/DELETE; por defecto, la cuenta propia). Un colaborador recibe 403.

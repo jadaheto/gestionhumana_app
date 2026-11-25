@@ -69,7 +69,11 @@ export class UpdateDatosBasicosUseCase implements UseCase<UpdateDatosBasicosInpu
   async execute(input: UpdateDatosBasicosInput): Promise<DatosBasicosDto> {
     const current = await this.repo.find(input.actor.id);
     if (!current) throw new NotFoundError('Usuario', input.actor.id);
-    await this.repo.update(input.actor.id, normalizeDatosBasicos(input.datos));
+    // ARL y caja de compensación las asigna la empresa: un colaborador no puede cambiarlas.
+    const datos = isAdmin(input.actor)
+      ? input.datos
+      : { ...input.datos, arl: current.arl, cajaCompensacion: current.cajaCompensacion };
+    await this.repo.update(input.actor.id, normalizeDatosBasicos(datos));
     return (await this.repo.find(input.actor.id)) as DatosBasicosDto;
   }
 }
