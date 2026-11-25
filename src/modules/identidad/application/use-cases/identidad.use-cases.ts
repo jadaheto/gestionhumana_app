@@ -12,8 +12,8 @@ export class GetIdentidadUseCase implements UseCase<void, IdentidadDto> {
     const dto = {
       mision: '',
       vision: '',
-      historia: '',
-      trayectoria: '',
+      valores: '',
+      principios: '',
       himno_url: '',
       updatedAt: null,
     } as IdentidadDto;

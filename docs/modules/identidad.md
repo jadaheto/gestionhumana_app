@@ -1,6 +1,6 @@
 # Módulo `identidad`
 
-Identidad empresarial (misión, visión, historia, trayectoria, himno) y configuración de la aplicación sobre `app_settings`:
+Identidad empresarial (misión, visión, valores, principios, himno) y configuración de la aplicación sobre `app_settings`:
 branding (logos/favicon), correo de comunicados y certificado laboral.
 
 Migra: `controllers/Identidad.php`, `models/Identidad_model.php`, `helpers/branding_helper.php` y, de
@@ -8,7 +8,7 @@ Migra: `controllers/Identidad.php`, `models/Identidad_model.php`, `helpers/brand
 `guardar_correo_comunicados`, `certificado_laboral_config`, `guardar_certificado_laboral_config`.
 
 ## Reglas de negocio migradas
-- Identidad: campos fijos `mision, vision, historia, trayectoria, himno_url` (tabla `identidad_empresa`, uno por fila).
+- Identidad: campos fijos `mision, vision, valores, principios, himno_url` (tabla `identidad_empresa`, uno por fila).
   Al guardar sólo se actualizan los campos enviados (como `Identidad::guardar`). `himno_url` debe ser http(s) o vacía.
 - Branding: 5 slots (`light, dark, sm, auth, favicon`) ↔ claves `branding_logo_light`, `branding_logo_dark`,
   `branding_logo_sm`, `branding_logo_auth`, `branding_favicon`. Logos `png|jpg|jpeg|svg`, favicon `ico|png`, máx. 5 MB,
@@ -23,7 +23,7 @@ Migra: `controllers/Identidad.php`, `models/Identidad_model.php`, `helpers/brand
 ## Endpoints (prefijo `api/v1`)
 | Método | Ruta | Rol | Descripción |
 |---|---|---|---|
-| GET | `/identidad` | autenticado | `{ mision, vision, historia, trayectoria, himno_url, updatedAt }` |
+| GET | `/identidad` | autenticado | `{ mision, vision, valores, principios, himno_url, updatedAt }` |
 | PUT | `/identidad` | admin | Actualiza los campos enviados |
 | GET | `/config/branding` | **público** (`@Public()`) | Logos para el login/shell |
 | PUT | `/admin/config/branding` (multipart: `light, dark, sm, auth, favicon`) | admin | Subir logos |

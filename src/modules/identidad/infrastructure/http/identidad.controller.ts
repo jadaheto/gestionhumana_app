@@ -5,7 +5,7 @@ import { IdentidadDto } from '../../application/dto/identidad.dto';
 import { GetIdentidadUseCase, SaveIdentidadUseCase } from '../../application/use-cases/identidad.use-cases';
 import { SaveIdentidadRequestDto } from './dto/identidad-request.dto';
 
-/** Identidad empresarial: misión, visión, historia, trayectoria e himno. */
+/** Identidad empresarial: misión, visión, valores, principios e himno. */
 @ApiTags('Identidad')
 @ApiBearerAuth()
 @Controller('identidad')

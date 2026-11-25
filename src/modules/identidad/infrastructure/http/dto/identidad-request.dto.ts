@@ -5,8 +5,8 @@ import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validat
 export class SaveIdentidadRequestDto {
   @ApiPropertyOptional() @IsOptional() @IsString() mision?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() vision?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() historia?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() trayectoria?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() valores?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() principios?: string;
   @ApiPropertyOptional({ description: 'URL embebible del himno (p. ej. https://www.youtube.com/embed/...)' })
   @IsOptional()
   @IsString()

@@ -1,7 +1,7 @@
 import { ValidationError } from '../../../shared/domain/domain-error';
 
 /** Campos de la tabla `identidad_empresa` (columna `campo`). */
-export const CAMPOS_IDENTIDAD = ['mision', 'vision', 'historia', 'trayectoria', 'himno_url'] as const;
+export const CAMPOS_IDENTIDAD = ['mision', 'vision', 'valores', 'principios', 'himno_url'] as const;
 export type CampoIdentidad = (typeof CAMPOS_IDENTIDAD)[number];
 
 export function esCampoIdentidad(value: string): value is CampoIdentidad {

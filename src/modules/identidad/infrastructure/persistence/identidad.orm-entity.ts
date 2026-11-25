@@ -1,6 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-/** Tabla `identidad_empresa` (misión, visión, historia, trayectoria, himno_url). */
+/** Tabla `identidad_empresa` (misión, visión, valores, principios, himno_url). */
 @Entity({ name: 'identidad_empresa' })
 export class IdentidadOrmEntity {
   @PrimaryGeneratedColumn() id!: number;

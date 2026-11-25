@@ -374,7 +374,7 @@ CREATE TABLE IF NOT EXISTS organigrama (
 -- 14. Identidad Empresarial
 CREATE TABLE IF NOT EXISTS identidad_empresa (
     id SERIAL PRIMARY KEY,
-    campo VARCHAR(50) NOT NULL UNIQUE, -- mision, vision, historia, trayectoria, himno_url
+    campo VARCHAR(50) NOT NULL UNIQUE, -- mision, vision, valores, principios, himno_url
     contenido TEXT,
     tipo VARCHAR(20) DEFAULT 'texto', -- texto, video, imagen
     orden INT DEFAULT 0,
@@ -385,8 +385,8 @@ CREATE TABLE IF NOT EXISTS identidad_empresa (
 INSERT INTO identidad_empresa (campo, contenido, tipo, orden) VALUES
 ('mision', 'Misión de Comfasucre', 'texto', 1),
 ('vision', 'Visión de Comfasucre', 'texto', 2),
-('historia', 'Historia de Comfasucre', 'texto', 3),
-('trayectoria', 'Trayectoria de Comfasucre', 'texto', 4),
+('valores', 'Valores de Comfasucre', 'texto', 3),
+('principios', 'Principios de Comfasucre', 'texto', 4),
 ('himno_url', '', 'video', 5)
 ON CONFLICT (campo) DO NOTHING;
 
