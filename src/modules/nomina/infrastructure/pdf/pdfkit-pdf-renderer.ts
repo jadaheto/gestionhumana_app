@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import {
   PdfAlign,
@@ -16,6 +16,8 @@ const FRANJA_PIE = ['#17365d', '#1c9ad6', '#8cc63f'];
 /** Renderiza un `PdfDocumentSpec` con pdfkit (A4 vertical). */
 @Injectable()
 export class PdfkitPdfRenderer extends PdfRenderer {
+  private readonly logger = new Logger(PdfkitPdfRenderer.name);
+
   render(spec: PdfDocumentSpec): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const margin = spec.margin ?? 40;
@@ -118,8 +120,9 @@ export class PdfkitPdfRenderer extends PdfRenderer {
         if (b.imagePath) {
           try {
             doc.image(b.imagePath, margin, y, { fit: [width, altoFirma], align: 'center', valign: 'bottom' });
-          } catch {
-            /* firma ilegible: queda el espacio para firmar a mano */
+          } catch (e) {
+            // Queda el espacio para firmar a mano, pero se deja rastro del motivo.
+            this.logger.warn(`No se pudo dibujar la firma ${b.imagePath}: ${(e as Error).message}`);
           }
         }
         const anchoLinea = 230;

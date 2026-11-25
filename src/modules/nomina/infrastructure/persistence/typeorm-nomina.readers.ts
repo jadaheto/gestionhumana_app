@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { FileStorage } from '../../../../shared/application/ports/file-storage.port';
+import { imagenParaPdf } from '../pdf/imagen-para-pdf';
 import { AppSettingOrmEntity } from '../../../../shared/infrastructure/persistence/orm/app-setting.orm-entity';
 import {
   CedulasExistentesReader,
@@ -149,15 +150,10 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
     return {
       jefeNombre: val('cert_jefe_nombre', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
       jefeCargo: val('cert_jefe_cargo', AppSettingsCertificadoConfigReader.DEFAULT_JEFE),
-      firmaPath: await this.resolve(val('cert_firma_png')),
-      logoPath: (await this.resolveLogo(val('branding_logo_dark'))) ?? logoInstitucional(),
+      firmaPath: await imagenParaPdf(await this.resolve(val('cert_firma_png'))),
+      logoPath: (await imagenParaPdf(await this.resolve(val('branding_logo_dark')))) ?? logoInstitucional(),
       sellos: sellosInstitucionales(),
     };
-  }
-
-  /** El PDF sólo admite PNG/JPEG: un logo en SVG (o ausente) se sustituye por el institucional. */
-  private async resolveLogo(ruta: string): Promise<string | null> {
-    return /\.(png|jpe?g)$/i.test(ruta) ? this.resolve(ruta) : null;
   }
 
   private async resolve(ruta: string): Promise<string | null> {
