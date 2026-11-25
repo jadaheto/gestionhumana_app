@@ -22,3 +22,8 @@
 
 ## Tablas
 `users` (ORM central en `shared`), `password_resets`, `login_history`, lectura de `contratos` mediante el puerto `ActiveContractChecker`.
+
+## Modo colaborador (cambio de rol del administrador)
+Un administrador puede actuar como colaborador enviando la cabecera `X-Rol-Activo: funcionario`: `JwtStrategy` construye el
+`Actor` con rol `funcionario`, de modo que guards y casos de uso lo tratan como a cualquier colaborador. La cabecera sólo
+permite bajar de rol (se ignora para usuarios que no son `admin`) y `GET /auth/me` sigue devolviendo el rol real.
