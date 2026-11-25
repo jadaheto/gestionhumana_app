@@ -1,6 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
-import { PdfAlign, PdfBlock, PdfDocumentSpec, PdfRenderer } from '../../application/ports/pdf-renderer.port';
+import {
+  PdfAlign,
+  PdfBlock,
+  PdfDocumentSpec,
+  PdfRenderer,
+  PdfSegment,
+} from '../../application/ports/pdf-renderer.port';
+
+/** Margen inferior de las páginas con pie institucional (el pie se dibuja dentro de esa franja). */
+const MARGEN_CON_PIE = 78;
+/** Colores de marca de la franja inferior. */
+const FRANJA_PIE = ['#17365d', '#1c9ad6', '#8cc63f'];
 
 /** Renderiza un `PdfDocumentSpec` con pdfkit (A4 vertical). */
 @Injectable()
@@ -10,7 +21,8 @@ export class PdfkitPdfRenderer extends PdfRenderer {
       const margin = spec.margin ?? 40;
       const doc = new PDFDocument({
         size: 'A4',
-        margin,
+        margins: { top: margin, left: margin, right: margin, bottom: spec.footer ? MARGEN_CON_PIE : margin },
+        bufferPages: true,
         info: { Title: spec.title, Author: spec.author ?? 'Gestión Humana', Creator: 'Comfasucre' },
       });
       const chunks: Buffer[] = [];
@@ -19,6 +31,7 @@ export class PdfkitPdfRenderer extends PdfRenderer {
       doc.on('error', reject);
       try {
         for (const block of spec.blocks) this.draw(doc, block, margin);
+        if (spec.footer) this.drawFooter(doc, spec.footer.columns, margin);
         doc.end();
       } catch (e) {
         reject(e as Error);
@@ -40,14 +53,68 @@ export class PdfkitPdfRenderer extends PdfRenderer {
         doc.moveDown(0.3);
         return;
       }
-      case 'paragraph':
+      case 'paragraph': {
+        const base = b.bold ? 'Helvetica-Bold' : b.italic ? 'Helvetica-Oblique' : 'Helvetica';
+        const opts = { align: b.align ?? 'left', width, lineGap: b.lineGap ?? 2 };
         doc
-          .font(b.bold ? 'Helvetica-Bold' : 'Helvetica')
           .fontSize(b.size ?? 11)
           .fillColor(b.muted ? '#666' : '#000')
-          .text(b.text, { align: b.align ?? 'left', width, lineGap: 2 });
+          .font(base);
+        doc.x = margin;
+        const segs = (b.segments ?? []).filter((s) => s.text !== '');
+        if (segs.length === 0) doc.text(b.text, opts);
+        else this.drawRichText(doc, segs, base, margin, width, opts.align, opts.lineGap);
         doc.moveDown(0.5);
         return;
+      }
+      case 'letterhead': {
+        const alto = 52;
+        const y = doc.y;
+        if (b.logoPath) {
+          try {
+            doc.image(b.logoPath, margin, y, { fit: [width * 0.4, alto], valign: 'center' });
+          } catch {
+            /* logo ilegible: se omite */
+          }
+        }
+        doc.font('Helvetica').fontSize(8.5).fillColor('#666');
+        const anchoTexto = width * 0.55;
+        const altoTexto = doc.heightOfString(b.text, { width: anchoTexto, align: 'right' });
+        doc.text(b.text, margin + width - anchoTexto, y + (alto - altoTexto) / 2, {
+          width: anchoTexto,
+          align: 'right',
+        });
+        doc.x = margin;
+        doc.y = y + alto + 8;
+        return;
+      }
+      case 'signature': {
+        const altoFirma = b.imagePath ? 64 : 34;
+        const altoBloque = altoFirma + 16 + b.lines.length * 15 + 6;
+        if (doc.y + altoBloque > doc.page.height - doc.page.margins.bottom) doc.addPage();
+        const y = doc.y;
+        if (b.imagePath) {
+          try {
+            doc.image(b.imagePath, margin, y, { fit: [width, altoFirma], align: 'center', valign: 'bottom' });
+          } catch {
+            /* firma ilegible: queda el espacio para firmar a mano */
+          }
+        }
+        const anchoLinea = 230;
+        const xLinea = margin + (width - anchoLinea) / 2;
+        doc
+          .moveTo(xLinea, y + altoFirma + 3)
+          .lineTo(xLinea + anchoLinea, y + altoFirma + 3)
+          .lineWidth(0.7)
+          .stroke('#333');
+        doc.x = margin;
+        doc.y = y + altoFirma + 8;
+        doc.font('Helvetica-Bold').fontSize(11.5).fillColor('#000').text(b.name, { align: 'center', width });
+        doc.font('Helvetica').fontSize(11);
+        for (const linea of b.lines) doc.text(linea, { align: 'center', width });
+        doc.moveDown(0.5);
+        return;
+      }
       case 'keyValue': {
         const cols = b.columns ?? 1;
         const colWidth = width / cols;
@@ -117,8 +184,10 @@ export class PdfkitPdfRenderer extends PdfRenderer {
       case 'image': {
         try {
           const h = b.height ?? 40;
-          const x = this.alignX(doc, b.align ?? 'left', margin, width, h * 3);
-          doc.image(b.path, x, doc.y, { height: h });
+          doc.image(b.path, margin, doc.y, {
+            fit: [width, h],
+            align: !b.align || b.align === 'left' ? undefined : b.align,
+          });
           doc.y += h + 6;
           doc.x = margin;
         } catch {
@@ -141,9 +210,120 @@ export class PdfkitPdfRenderer extends PdfRenderer {
     }
   }
 
-  private alignX(doc: PDFKit.PDFDocument, align: PdfAlign, margin: number, width: number, w: number): number {
-    if (align === 'center') return margin + (width - w) / 2;
-    if (align === 'right') return margin + width - w;
-    return margin;
+  /**
+   * Párrafo con negritas puntuales. pdfkit no justifica bien el texto
+   * encadenado con `continued` (deja sin justificar la última línea de cada
+   * tramo), así que las líneas se componen aquí palabra por palabra.
+   */
+  private drawRichText(
+    doc: PDFKit.PDFDocument,
+    segments: PdfSegment[],
+    baseFont: string,
+    margin: number,
+    width: number,
+    align: PdfAlign | 'justify',
+    lineGap: number,
+  ): void {
+    type Trozo = { text: string; font: string; width: number };
+    type Palabra = { trozos: Trozo[]; width: number };
+    // Una palabra puede mezclar fuentes ("TORRES" en negrita seguido de la coma normal).
+    const palabras: Palabra[] = [];
+    let nueva = true;
+    for (const seg of segments) {
+      const font = seg.bold ? 'Helvetica-Bold' : baseFont;
+      doc.font(font);
+      for (const parte of seg.text.split(/(\s+)/)) {
+        if (parte === '') continue;
+        if (/^\s+$/.test(parte)) {
+          nueva = true;
+          continue;
+        }
+        const trozo: Trozo = { text: parte, font, width: doc.widthOfString(parte) };
+        if (nueva || palabras.length === 0) palabras.push({ trozos: [trozo], width: trozo.width });
+        else {
+          const ultima = palabras[palabras.length - 1];
+          ultima.trozos.push(trozo);
+          ultima.width += trozo.width;
+        }
+        nueva = false;
+      }
+    }
+    doc.font(baseFont);
+    const espacio = doc.widthOfString(' ');
+    const altoLinea = doc.currentLineHeight(true) + lineGap;
+
+    const lineas: Palabra[][] = [];
+    let actual: Palabra[] = [];
+    let ancho = 0;
+    for (const p of palabras) {
+      const conEspacio = actual.length > 0 ? espacio + p.width : p.width;
+      if (actual.length > 0 && ancho + conEspacio > width) {
+        lineas.push(actual);
+        actual = [p];
+        ancho = p.width;
+      } else {
+        actual.push(p);
+        ancho += conEspacio;
+      }
+    }
+    if (actual.length > 0) lineas.push(actual);
+
+    lineas.forEach((linea, i) => {
+      if (doc.y + altoLinea > doc.page.height - doc.page.margins.bottom) doc.addPage();
+      const y = doc.y;
+      const anchoPalabras = linea.reduce((a, p) => a + p.width, 0);
+      const natural = anchoPalabras + espacio * (linea.length - 1);
+      const esUltima = i === lineas.length - 1;
+      let separacion = espacio;
+      let x = margin;
+      if (align === 'justify' && !esUltima && linea.length > 1) {
+        separacion = (width - anchoPalabras) / (linea.length - 1);
+      } else if (align === 'center') x = margin + (width - natural) / 2;
+      else if (align === 'right') x = margin + width - natural;
+      for (const p of linea) {
+        for (const t of p.trozos) {
+          doc.font(t.font).text(t.text, x, y, { lineBreak: false });
+          x += t.width;
+        }
+        x += separacion;
+      }
+      doc.x = margin;
+      doc.y = y + altoLinea;
+    });
+    doc.font(baseFont);
+  }
+
+  /** Pie institucional en cada página: datos de contacto en columnas y franja con los colores de marca. */
+  private drawFooter(doc: PDFKit.PDFDocument, columns: string[][], margin: number): void {
+    const rango = doc.bufferedPageRange();
+    for (let i = rango.start; i < rango.start + rango.count; i++) {
+      doc.switchToPage(i);
+      const { width: anchoPagina, height: altoPagina } = doc.page;
+      const width = anchoPagina - margin * 2;
+      // Sin margen inferior mientras se dibuja, para que pdfkit no salte de página.
+      const margenInferior = doc.page.margins.bottom;
+      doc.page.margins.bottom = 0;
+      const y = altoPagina - MARGEN_CON_PIE + 16;
+      doc
+        .moveTo(margin, y)
+        .lineTo(margin + width, y)
+        .lineWidth(0.5)
+        .stroke('#bbb');
+      const anchoCol = width / Math.max(columns.length, 1);
+      doc.font('Helvetica').fontSize(8).fillColor('#555');
+      columns.forEach((lineas, c) => {
+        doc.text(lineas.join('\n'), margin + c * anchoCol, y + 7, {
+          width: anchoCol - 8,
+          align: c === 0 ? 'left' : c === columns.length - 1 ? 'right' : 'center',
+          lineBreak: true,
+        });
+      });
+      const altoFranja = 7;
+      const anchoFranja = anchoPagina / FRANJA_PIE.length;
+      FRANJA_PIE.forEach((color, c) => {
+        doc.rect(c * anchoFranja, altoPagina - altoFranja, anchoFranja + 0.5, altoFranja).fill(color);
+      });
+      doc.page.margins.bottom = margenInferior;
+    }
   }
 }

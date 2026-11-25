@@ -368,6 +368,10 @@ export function textoDeSpec(spec: PdfDocumentSpec): string {
           return b.items.join('\n');
         case 'image':
           return `[imagen ${b.path}]`;
+        case 'letterhead':
+          return `${b.logoPath ? `[imagen ${b.logoPath}]\n` : ''}${b.text}`;
+        case 'signature':
+          return [b.imagePath ? `[imagen ${b.imagePath}]` : '', b.name, ...b.lines].filter(Boolean).join('\n');
         default:
           return '';
       }

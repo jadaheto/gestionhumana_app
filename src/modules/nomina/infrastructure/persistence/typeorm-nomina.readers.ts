@@ -22,7 +22,7 @@ export class TypeOrmPerfilColaboradorReader extends PerfilColaboradorReader {
   }
   async getPerfil(userId: number): Promise<PerfilColaborador | null> {
     const rows: Array<Record<string, unknown>> = await this.dataSource.query(
-      `SELECT u.id, u.first_name, u.last_name, u.cedula,
+      `SELECT u.id, u.first_name, u.last_name, u.cedula, u.genero,
               c.nombre AS cargo_nombre, c.funciones AS cargo_funciones,
               a.nombre AS area_nombre, s.nombre AS sede_nombre
          FROM users u
@@ -40,6 +40,7 @@ export class TypeOrmPerfilColaboradorReader extends PerfilColaboradorReader {
       firstName: String(r.first_name ?? ''),
       lastName: String(r.last_name ?? ''),
       cedula: r.cedula === null || r.cedula === undefined ? null : String(r.cedula),
+      genero: (r.genero as string | null) ?? null,
       cargoNombre: (r.cargo_nombre as string | null) ?? null,
       cargoFunciones: (r.cargo_funciones as string | null) ?? null,
       areaNombre: (r.area_nombre as string | null) ?? null,

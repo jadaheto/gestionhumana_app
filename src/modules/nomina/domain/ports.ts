@@ -7,6 +7,8 @@ export interface PerfilColaborador {
   firstName: string;
   lastName: string;
   cedula: string | null;
+  /** `masculino` | `femenino` | `otro` | null: define el tratamiento en el certificado. */
+  genero?: string | null;
   cargoNombre: string | null;
   cargoFunciones: string | null;
   areaNombre: string | null;

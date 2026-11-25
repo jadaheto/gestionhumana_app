@@ -5,7 +5,13 @@ import { Actor, actorFullName } from '../../../../shared/domain/actor';
 import { InvalidOperationError, NotFoundError, ValidationError } from '../../../../shared/domain/domain-error';
 import { Certificado, MODOS_CERTIFICADO_LABORAL } from '../../domain/certificado';
 import { anioDesprendible, ConceptosNomina } from '../../domain/desprendible';
-import { CertificadoConfigReader, ContratoReader, ContratoResumen, PerfilColaboradorReader } from '../../domain/ports';
+import {
+  CertificadoConfigReader,
+  ContratoReader,
+  ContratoResumen,
+  PerfilColaboradorReader,
+  ProrrogaResumen,
+} from '../../domain/ports';
 import { CertificadoRepository, DesprendibleRepository, FiltroTipoCertificado } from '../../domain/repositories';
 import {
   ArchivoPdfDto,
@@ -15,14 +21,93 @@ import {
   GenerarCertificadoLaboralInput,
 } from '../dto/nomina.dto';
 import {
-  fechaCorta,
+  cedulaConPuntos,
   fechaDesdeDate,
+  fechaExpedicionEnLetras,
+  fechaLarga,
   marcaTiempoArchivo,
   pesos,
   pesosConSimbolo,
+  pesosEnLetras,
   tipoContratoLegible,
 } from '../formato';
-import { PdfBlock, PdfDocumentSpec, PdfRenderer } from '../ports/pdf-renderer.port';
+import { PdfBlock, PdfDocumentSpec, PdfRenderer, PdfSegment } from '../ports/pdf-renderer.port';
+
+/** Datos institucionales del membrete y el pie del certificado laboral. */
+const ENTIDAD = {
+  razonSocial: 'CAJA DE COMPENSACIÓN FAMILIAR DE SUCRE “COMFASUCRE”',
+  nit: '892200015-5',
+  ciudad: 'Sincelejo',
+  vigilancia: 'Vigilado Supersubsidio  ·  Asocajas  ·  Fedecajas',
+  pie: [
+    ['Calle 28 # 25B - 50', 'Sincelejo, Sucre'],
+    ['300 910 9720', '01 8000 938 810'],
+    ['www.comfasucre.com.co', 'seccion.archivo@comfasucre.com.co'],
+  ],
+};
+
+/** Tratamiento según el género registrado; sin dato se usa la forma neutra. */
+function tratamiento(genero: string | null | undefined): { senor: string; identificado: string } {
+  const g = (genero ?? '').trim().toLowerCase();
+  if (g === 'masculino') return { senor: 'el señor', identificado: 'identificado' };
+  if (g === 'femenino') return { senor: 'la señora', identificado: 'identificada' };
+  return { senor: 'el(la) señor(a)', identificado: 'identificado(a)' };
+}
+
+interface ModalidadContrato {
+  nombre: string;
+  verboPresente: string;
+  verboPasado: string;
+  pagoVigente: string;
+  pagoVencido: string;
+}
+
+/** Redacción según el tipo de contrato (un contratista no "labora" ni recibe "salario"). */
+function modalidadContrato(tipo: string): ModalidadContrato {
+  const laboral = (nombre: string): ModalidadContrato => ({
+    nombre,
+    verboPresente: 'labora en esta empresa',
+    verboPasado: 'laboró en esta empresa',
+    pagoVigente: 'una asignación salarial mensual',
+    pagoVencido: 'una última asignación salarial mensual',
+  });
+  switch (tipo) {
+    case 'indefinido':
+      return laboral('Contrato Individual de Trabajo a término indefinido');
+    case 'fijo':
+    case 'termino_fijo':
+      return laboral('Contrato Individual de Trabajo a término fijo');
+    case 'obra_labor':
+      return laboral('Contrato Individual de Trabajo por obra o labor');
+    case 'aprendizaje':
+      return {
+        nombre: 'Contrato de Aprendizaje',
+        verboPresente: 'se encuentra vinculado(a) a esta empresa',
+        verboPasado: 'estuvo vinculado(a) a esta empresa',
+        pagoVigente: 'un apoyo de sostenimiento mensual',
+        pagoVencido: 'un último apoyo de sostenimiento mensual',
+      };
+    case 'prestacion_servicios':
+      return {
+        nombre: 'Contrato de Prestación de Servicios',
+        verboPresente: 'presta sus servicios a esta empresa',
+        verboPasado: 'prestó sus servicios a esta empresa',
+        pagoVigente: 'unos honorarios mensuales',
+        pagoVencido: 'unos últimos honorarios mensuales',
+      };
+    default:
+      return laboral(`Contrato ${tipoContratoLegible(tipo)}`);
+  }
+}
+
+function fraseProrroga(p: ProrrogaResumen): string {
+  return `Prórroga por ${p.mesesProrroga} mes(es), desde el ${fechaLarga(p.fechaInicioProrroga)} hasta el ${fechaLarga(p.fechaFinNueva)}.`;
+}
+
+/** Párrafo justificado del cuerpo, con negritas puntuales (nombre y cargo). */
+function parrafo(segments: PdfSegment[]): PdfBlock {
+  return { type: 'paragraph', text: segments.map((s) => s.text).join(''), segments, align: 'justify', lineGap: 7 };
+}
 
 export function toCertificadoDto(c: Certificado): CertificadoDto {
   return { id: c.id, tipo: c.tipo, fechaGeneracion: c.fechaGeneracion, datos: c.datos, createdAt: c.createdAt };
@@ -96,49 +181,71 @@ export class GenerarCertificadoLaboralUseCase implements UseCase<
     }
 
     const cfg = await this.config.get();
-    const nombre = `${perfil.firstName} ${perfil.lastName}`.trim() || actorFullName(actor);
-    const cargo = perfil.cargoNombre || 'Sin cargo';
+    const nombre = (`${perfil.firstName} ${perfil.lastName}`.trim() || actorFullName(actor)).toUpperCase();
+    const cargo = (perfil.cargoNombre || 'Sin cargo').toUpperCase();
+    const area = (perfil.areaNombre ?? '').trim();
+    const trato = tratamiento(perfil.genero);
+    const identificacion = `, ${trato.identificado} con cédula de ciudadanía No. ${cedulaConPuntos(perfil.cedula)}, `;
 
-    const items: string[] = [];
-    for (const c of contratos) {
-      const fin = c.fechaFin ? fechaCorta(c.fechaFin) : 'Vigente';
-      items.push(
-        `Contrato ${tipoContratoLegible(c.tipoContrato)} desde ${fechaCorta(c.fechaInicio)} hasta ${fin}, desempeñando el cargo de ${cargo} con salario mensual de $${pesos(c.salarioBase)}.`,
+    const cuerpo: PdfBlock[] = [];
+    if (contratos.length === 1) {
+      // Un solo contrato: párrafo corrido, como el certificado que expide Gestión Humana.
+      const c = contratos[0];
+      const m = modalidadContrato(c.tipoContrato);
+      const vigente = !c.fechaFin || c.fechaFin >= hoy;
+      const periodo = `desde el día ${fechaLarga(c.fechaInicio)}${c.fechaFin ? ` hasta el día ${fechaLarga(c.fechaFin)}` : ''}`;
+      const enArea = area ? `, en el área de ${area}` : '';
+      cuerpo.push(
+        parrafo([
+          { text: `Que ${trato.senor} ` },
+          { text: nombre, bold: true },
+          { text: identificacion },
+          {
+            text: vigente
+              ? `${m.verboPresente} mediante ${m.nombre} ${periodo}, actualmente desempeña el cargo de `
+              : `${m.verboPasado} mediante ${m.nombre} ${periodo}, desempeñando el cargo de `,
+          },
+          { text: cargo, bold: true },
+          {
+            text: `${enArea}, con ${vigente ? m.pagoVigente : m.pagoVencido} de ${pesosEnLetras(c.salarioBase)}.`,
+          },
+        ]),
       );
-      for (const p of await this.contratos.prorrogas(c.id)) {
-        items.push(
-          `    Prórroga por ${p.mesesProrroga} mes(es), desde ${fechaCorta(p.fechaInicioProrroga)} hasta ${fechaCorta(p.fechaFinNueva)}.`,
+      const prorrogas = await this.contratos.prorrogas(c.id);
+      if (prorrogas.length > 0) {
+        cuerpo.push(
+          { type: 'paragraph', text: 'El contrato registra las siguientes prórrogas:', lineGap: 5 },
+          { type: 'list', items: prorrogas.map(fraseProrroga) },
         );
       }
+    } else {
+      cuerpo.push(
+        parrafo([
+          { text: `Que ${trato.senor} ` },
+          { text: nombre, bold: true },
+          { text: `${identificacion}registra en esta empresa las siguientes vinculaciones, en el cargo de ` },
+          { text: cargo, bold: true },
+          { text: `${area ? `, en el área de ${area}` : ''}:` },
+        ]),
+      );
+      const items: string[] = [];
+      for (const c of contratos) {
+        const m = modalidadContrato(c.tipoContrato);
+        const vigente = !c.fechaFin || c.fechaFin >= hoy;
+        const fin = c.fechaFin ? `hasta el ${fechaLarga(c.fechaFin)}` : 'a la fecha';
+        items.push(
+          `${m.nombre} desde el ${fechaLarga(c.fechaInicio)} ${fin}${vigente ? ' (vigente)' : ''}, con ${m.pagoVigente} de $${pesos(c.salarioBase)}.`,
+        );
+        // La sangría inicial indica al renderizador que es un subítem.
+        for (const p of await this.contratos.prorrogas(c.id)) items.push(`    ${fraseProrroga(p)}`);
+      }
+      cuerpo.push({ type: 'list', items });
     }
 
-    const fechaExpedicion = fechaDesdeDate(this.clock.now());
-    const blocks: PdfBlock[] = [];
-    if (cfg.logoPath) blocks.push({ type: 'image', path: cfg.logoPath, height: 42, align: 'left' });
-    blocks.push(
-      {
-        type: 'paragraph',
-        text: 'Vigilado Supersubsidio | Asocajas | Fedecajas',
-        align: 'right',
-        size: 9,
-        muted: true,
-      },
-      { type: 'spacer' },
-      { type: 'heading', text: 'CERTIFICACIÓN LABORAL', level: 2, align: 'center' },
-      {
-        type: 'paragraph',
-        text: `La suscrita ${cfg.jefeCargo} de la Caja de Compensación Familiar de Sucre "COMFASUCRE", certifica que:`,
-      },
-      {
-        type: 'paragraph',
-        text: `El(la) señor(a) ${nombre}, identificado(a) con cédula No. ${perfil.cedula ?? ''}, ha laborado en la entidad bajo las siguientes modalidades de contratación:`,
-      },
-      { type: 'list', items },
-    );
     if (input.incluirFunciones) {
       const funciones = (perfil.cargoFunciones ?? '').trim();
-      blocks.push({ type: 'paragraph', text: `Funciones del cargo de ${cargo}:`, bold: true });
-      blocks.push(
+      cuerpo.push({ type: 'paragraph', text: `Funciones del cargo de ${cargo}:`, bold: true });
+      cuerpo.push(
         funciones !== ''
           ? {
               type: 'list',
@@ -150,16 +257,56 @@ export class GenerarCertificadoLaboralUseCase implements UseCase<
           : { type: 'paragraph', text: 'El cargo no tiene funciones registradas en el sistema.', muted: true },
       );
     }
-    blocks.push({
-      type: 'paragraph',
-      text: `Se expide la presente certificación a solicitud del interesado en Sincelejo, a los ${fechaExpedicion}.`,
-    });
-    blocks.push({ type: 'spacer', height: 20 });
-    if (cfg.firmaPath) blocks.push({ type: 'image', path: cfg.firmaPath, height: 60, align: 'left' });
-    blocks.push({ type: 'paragraph', text: cfg.jefeNombre, bold: true });
-    blocks.push({ type: 'paragraph', text: `${cfg.jefeCargo}\nComfasucre` });
 
-    const spec: PdfDocumentSpec = { title: 'Certificado Laboral', author: 'Gestión Humana', margin: 45, blocks };
+    const ahora = this.clock.now();
+    const blocks: PdfBlock[] = [
+      { type: 'letterhead', logoPath: cfg.logoPath, text: ENTIDAD.vigilancia },
+      { type: 'spacer', height: 26 },
+      {
+        type: 'paragraph',
+        text: `LA ${cfg.jefeCargo.toUpperCase()} DE LA ${ENTIDAD.razonSocial}`,
+        align: 'center',
+        bold: true,
+        size: 13,
+        lineGap: 7,
+      },
+      { type: 'spacer', height: 12 },
+      { type: 'paragraph', text: `NIT: ${ENTIDAD.nit}`, align: 'center', bold: true, size: 13 },
+      { type: 'spacer', height: 22 },
+      { type: 'paragraph', text: 'CERTIFICA', align: 'center', bold: true, size: 14 },
+      { type: 'spacer', height: 22 },
+      ...cuerpo,
+      { type: 'spacer', height: 14 },
+      {
+        type: 'paragraph',
+        text: `Se expide esta certificación a solicitud de la parte interesada en ${ENTIDAD.ciudad}, ${fechaExpedicionEnLetras(ahora)}.`,
+        align: 'justify',
+        lineGap: 5,
+      },
+      { type: 'spacer', height: 30 },
+      {
+        type: 'signature',
+        imagePath: cfg.firmaPath,
+        name: cfg.jefeNombre.toUpperCase(),
+        lines: [cfg.jefeCargo, 'Comfasucre'],
+      },
+      { type: 'spacer', height: 16 },
+      {
+        type: 'paragraph',
+        text: `Generado por el sistema de Gestión Humana el ${fechaDesdeDate(ahora)}.`,
+        italic: true,
+        muted: true,
+        size: 8,
+      },
+    ];
+
+    const spec: PdfDocumentSpec = {
+      title: 'Certificado Laboral',
+      author: 'Gestión Humana',
+      margin: 62,
+      blocks,
+      footer: { columns: ENTIDAD.pie },
+    };
     const content = await this.pdf.render(spec);
 
     await this.certificados.save({

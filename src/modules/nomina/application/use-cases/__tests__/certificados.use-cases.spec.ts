@@ -1,5 +1,6 @@
 import { InvalidOperationError, ValidationError } from '../../../../../shared/domain/domain-error';
 import { FakeClock, funcionarioActor } from '../../../../../shared/testing/fakes';
+import { cedulaConPuntos, fechaExpedicionEnLetras, numeroALetras, pesosEnLetras } from '../../formato';
 import {
   GenerarCertificadoIngresosUseCase,
   GenerarCertificadoLaboralUseCase,
@@ -51,15 +52,19 @@ describe('Certificado laboral', () => {
 
     expect(archivo.filename).toMatch(/^Certificado_Laboral_2_20261008_\d{6}\.pdf$/);
     const texto = textoDeSpec(pdf.specs[0]);
-    expect(texto).toContain('CERTIFICACIÓN LABORAL');
-    expect(texto).toContain('La suscrita Jefe de Gestión Humana de la Caja de Compensación Familiar de Sucre');
-    expect(texto).toContain('El(la) señor(a) Juan Pérez, identificado(a) con cédula No. 1102879310');
+    expect(texto).toContain('LA JEFE DE GESTIÓN HUMANA DE LA CAJA DE COMPENSACIÓN FAMILIAR DE SUCRE “COMFASUCRE”');
+    expect(texto).toContain('NIT: 892200015-5');
+    expect(texto).toContain('CERTIFICA');
     expect(texto).toContain(
-      'Contrato Termino fijo desde 01/01/2025 hasta 31/12/2026, desempeñando el cargo de Docente Primaria con salario mensual de $2.500.000.',
+      'Que el(la) señor(a) JUAN PÉREZ, identificado(a) con cédula de ciudadanía No. 1.102.879.310, labora en esta empresa mediante Contrato Individual de Trabajo a término fijo desde el día 1 de enero de 2025 hasta el día 31 de diciembre de 2026, actualmente desempeña el cargo de DOCENTE PRIMARIA, en el área de Educación, con una asignación salarial mensual de DOS MILLONES QUINIENTOS MIL PESOS M/CTE ($2.500.000).',
     );
-    expect(texto).toContain('Prórroga por 6 mes(es), desde 01/07/2026 hasta 31/12/2026.');
+    expect(texto).toContain('Prórroga por 6 mes(es), desde el 1 de julio de 2026 hasta el 31 de diciembre de 2026.');
+    expect(texto).toContain(
+      'Se expide esta certificación a solicitud de la parte interesada en Sincelejo, a los ocho (8) días del mes de octubre de 2026.',
+    );
     expect(texto).toContain('[imagen /abs/firma.png]');
-    expect(texto).toContain('María Gómez');
+    expect(texto).toContain('MARÍA GÓMEZ');
+    expect(pdf.specs[0].footer?.columns.flat()).toContain('www.comfasucre.com.co');
     expect(texto).not.toContain('Funciones del cargo');
     expect(certificados.items[0]).toMatchObject({
       userId: 2,
@@ -73,9 +78,9 @@ describe('Certificado laboral', () => {
     contratos.actual = buildContrato();
     await uc.execute({ actor: funcionarioActor, input: { modo: 'actual', incluirFunciones: true } });
     const texto = textoDeSpec(pdf.specs[0]);
-    expect(texto).toContain('Funciones del cargo de Docente Primaria');
+    expect(texto).toContain('Funciones del cargo de DOCENTE PRIMARIA');
     expect(texto).toContain('Dictar clases');
-    expect(texto).toContain('hasta Vigente');
+    expect(texto).toContain('desde el día 1 de enero de 2025, actualmente desempeña');
     expect(certificados.items[0].tipo).toBe('laboral_con_funciones');
   });
 
@@ -86,7 +91,11 @@ describe('Certificado laboral', () => {
     ];
     await uc.execute({ actor: funcionarioActor, input: { modo: 'historico', incluirFunciones: false } });
     const texto = textoDeSpec(pdf.specs[0]);
-    expect(texto).toContain('Contrato Obra labor desde 01/01/2023 hasta 31/12/2024');
+    expect(texto).toContain('registra en esta empresa las siguientes vinculaciones');
+    expect(texto).toContain(
+      'Contrato Individual de Trabajo por obra o labor desde el 1 de enero de 2023 hasta el 31 de diciembre de 2024, con una asignación salarial mensual de $2.500.000.',
+    );
+    expect(texto).toContain('a la fecha (vigente)');
     expect(certificados.items[0].datos).toMatchObject({ contratos: [100, 90] });
   });
 
@@ -100,6 +109,7 @@ describe('Certificado laboral', () => {
       uc.execute({ actor: funcionarioActor, input: { modo: 'vencido', contratoId: 100, incluirFunciones: false } }),
     ).rejects.toBeInstanceOf(InvalidOperationError);
     await uc.execute({ actor: funcionarioActor, input: { modo: 'vencido', contratoId: 90, incluirFunciones: false } });
+    expect(textoDeSpec(pdf.specs[0])).toContain('laboró en esta empresa mediante');
     expect(certificados.items[0].datos).toMatchObject({ modo: 'vencido', contratos: [90] });
   });
 
@@ -189,5 +199,22 @@ describe('Certificado de ingresos y retenciones', () => {
     await expect(uc.execute({ actor: funcionarioActor, input: { anio: 2025 } })).rejects.toThrow(
       'No hay desprendibles de nómina registrados para el año 2025.',
     );
+  });
+});
+
+describe('Formato en letras', () => {
+  it('escribe valores y fechas como en un certificado', () => {
+    expect(pesosEnLetras(6061275)).toBe(
+      'SEIS MILLONES SESENTA Y UN MIL DOSCIENTOS SETENTA Y CINCO PESOS M/CTE ($6.061.275)',
+    );
+    expect(pesosEnLetras(1000000)).toBe('UN MILLÓN DE PESOS M/CTE ($1.000.000)');
+    expect(pesosEnLetras(1423500)).toBe('UN MILLÓN CUATROCIENTOS VEINTITRÉS MIL QUINIENTOS PESOS M/CTE ($1.423.500)');
+    expect(numeroALetras(21, true)).toBe('veintiún');
+    expect(numeroALetras(100)).toBe('cien');
+    expect(numeroALetras(1001)).toBe('mil uno');
+    expect(fechaExpedicionEnLetras(new Date(2026, 5, 1))).toBe('al primer (1) día del mes de junio de 2026');
+    expect(fechaExpedicionEnLetras(new Date(2026, 4, 31))).toBe('a los treinta y un (31) días del mes de mayo de 2026');
+    expect(cedulaConPuntos('1101814261')).toBe('1.101.814.261');
+    expect(cedulaConPuntos('AB-123')).toBe('AB-123');
   });
 });
