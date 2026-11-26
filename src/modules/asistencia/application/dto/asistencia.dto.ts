@@ -34,6 +34,21 @@ export interface ResumenAsistenciaDto {
   sedeId: number;
   politica: PoliticaAsistenciaDto;
   resumen: ResumenDiarioDto[];
+  /** Resultado de leer la base de datos del reloj antes de armar el resumen. */
+  sincronizacion: SincronizacionExternaDto;
+}
+
+export interface SincronizacionExternaDto {
+  /** false cuando la base externa del reloj no está configurada. */
+  activa: boolean;
+  /** Marcaciones válidas del día encontradas en la base externa (todas las sedes). */
+  leidas: number;
+  /** Marcaciones nuevas guardadas para la sede en esta consulta. */
+  nuevas: number;
+  /** Personas con marcaciones que no son colaboradores de la sede. */
+  sinColaborador: number;
+  /** Mensaje si no se pudo consultar la base externa. */
+  error: string | null;
 }
 
 export interface SedeAsistenciaDto {

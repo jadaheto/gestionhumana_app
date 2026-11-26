@@ -5,9 +5,11 @@ import {
   AsistenciaPoliticaRepository,
   AsistenciaRegistroRepository,
   AsistenciaResumenRepository,
+  claveMarcacion,
   ColaboradorAsistencia,
   ColaboradoresSedeReader,
   JustificacionReader,
+  MarcacionesExternasReader,
   NuevaImportacion,
   ResumenDiarioData,
   SedeOption,
@@ -49,6 +51,29 @@ export class InMemoryMarcacionRepository extends AsistenciaMarcacionRepository {
   }
   findBySedeYFecha(sedeId: number, fecha: string): Promise<Marcacion[]> {
     return Promise.resolve(this.marcaciones.filter((m) => m.sedeId === sedeId && m.fechaHora.startsWith(fecha)));
+  }
+  findClavesBySedeYFecha(sedeId: number, fecha: string): Promise<Set<string>> {
+    const claves = new Set<string>();
+    for (const imp of this.importaciones) {
+      if (imp.sedeId !== sedeId) continue;
+      for (const m of imp.marcaciones) {
+        if (m.fechaHora.startsWith(fecha)) claves.add(claveMarcacion(m.identificacion, m.fechaHora));
+      }
+    }
+    return Promise.resolve(claves);
+  }
+}
+
+export class FakeMarcacionesExternasReader extends MarcacionesExternasReader {
+  activo = true;
+  filas: MarcacionImportada[] = [];
+  error: Error | null = null;
+  habilitado(): boolean {
+    return this.activo;
+  }
+  leerDia(fecha: string): Promise<MarcacionImportada[]> {
+    if (this.error) return Promise.reject(this.error);
+    return Promise.resolve(this.filas.filter((f) => f.fechaHora.startsWith(fecha)));
   }
 }
 

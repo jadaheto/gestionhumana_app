@@ -12,7 +12,8 @@ export abstract class AsistenciaPoliticaRepository {
 export interface NuevaImportacion {
   sedeId: number;
   archivo: string;
-  importadoPor: number;
+  /** Usuario que cargó el archivo; null cuando viene de la base externa del reloj. */
+  importadoPor: number | null;
   createdAt: Date;
   marcaciones: Array<MarcacionImportada & { userId: number | null }>;
 }
@@ -22,6 +23,25 @@ export abstract class AsistenciaMarcacionRepository {
   abstract saveImportacion(importacion: NuevaImportacion): Promise<number>;
   /** Marcaciones con colaborador resuelto de una sede en un día (`fecha` = `YYYY-MM-DD`). */
   abstract findBySedeYFecha(sedeId: number, fecha: string): Promise<Marcacion[]>;
+  /** Claves `identificacion|YYYY-MM-DD HH:mm:ss` ya guardadas de una sede en un día (para no duplicar). */
+  abstract findClavesBySedeYFecha(sedeId: number, fecha: string): Promise<Set<string>>;
+}
+
+/** Clave que identifica una marcación dentro de una sede. */
+export function claveMarcacion(identificacion: string, fechaHora: string): string {
+  return `${identificacion}|${fechaHora}`;
+}
+
+/**
+ * Base de datos externa del reloj biométrico, con la estructura del reporte
+ * "Asistencia Diaria" (Nro. de serie, Departamento, ID de usuario, Nombre,
+ * Fecha/Hora, Tipo de registro, Operación, ...).
+ */
+export abstract class MarcacionesExternasReader {
+  /** false cuando no está configurada (`ASISTENCIA_DB_HOST` vacío). */
+  abstract habilitado(): boolean;
+  /** Marcaciones válidas de un día (`YYYY-MM-DD`), de todas las sedes. */
+  abstract leerDia(fecha: string): Promise<MarcacionImportada[]>;
 }
 
 export interface ResumenDiarioData {

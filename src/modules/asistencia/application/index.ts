@@ -3,6 +3,7 @@ export * from './ports/asistencia-file-parser.port';
 export * from './use-cases/consolidar-resumen-diario.use-case';
 export * from './use-cases/get-resumen-diario.use-case';
 export * from './use-cases/importar-marcaciones.use-case';
+export * from './use-cases/sincronizar-marcaciones-externas.use-case';
 export * from './use-cases/enviar-memorandos.use-case';
 export * from './use-cases/politica.use-cases';
 export * from './use-cases/list-sedes.use-case';

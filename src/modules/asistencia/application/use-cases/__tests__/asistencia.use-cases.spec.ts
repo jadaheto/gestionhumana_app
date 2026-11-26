@@ -8,8 +8,10 @@ import { GetMiHistorialUseCase } from '../get-mi-historial.use-case';
 import { GetResumenDiarioUseCase } from '../get-resumen-diario.use-case';
 import { ImportarMarcacionesUseCase } from '../importar-marcaciones.use-case';
 import { GetPoliticaUseCase, SavePoliticaUseCase } from '../politica.use-cases';
+import { SincronizarMarcacionesExternasUseCase } from '../sincronizar-marcaciones-externas.use-case';
 import {
   FakeFileParser,
+  FakeMarcacionesExternasReader,
   InMemoryColaboradoresReader,
   InMemoryJustificacionReader,
   InMemoryMarcacionRepository,
@@ -44,6 +46,9 @@ function setup() {
   const justificaciones = new InMemoryJustificacionReader();
   const mailer = new FakeMailer();
   const parser = new FakeFileParser();
+  const externas = new FakeMarcacionesExternasReader();
+  externas.activo = false;
+  const sincronizar = new SincronizarMarcacionesExternasUseCase(externas, marcaciones, colaboradores, clock);
 
   const ana = { id: 10, firstName: 'Ana', lastName: 'Pérez', email: 'ana@comfasucre.com.co', cedula: '111' };
   const luis = { id: 11, firstName: 'Luis', lastName: 'Gómez', email: 'luis@comfasucre.com.co', codigo: 'E-22' };
@@ -71,7 +76,9 @@ function setup() {
     parser,
     consolidar,
     importar: new ImportarMarcacionesUseCase(parser, marcaciones, colaboradores, clock),
-    resumen: new GetResumenDiarioUseCase(consolidar, resumenes, politicas, clock),
+    externas,
+    sincronizar,
+    resumen: new GetResumenDiarioUseCase(consolidar, resumenes, politicas, clock, sincronizar),
     memorandos: new EnviarMemorandosUseCase(consolidar, resumenes, mailer, clock),
     savePolitica: new SavePoliticaUseCase(politicas, clock),
     getPolitica: new GetPoliticaUseCase(politicas),
@@ -157,6 +164,49 @@ describe('GetResumenDiarioUseCase', () => {
   it('valida la fecha', async () => {
     const s = setup();
     await expect(s.resumen.execute({ sedeId: SEDE, fecha: '08/10/2026' })).rejects.toThrow(ValidationError);
+  });
+});
+
+describe('Base de datos externa del reloj', () => {
+  it('apagada no consulta nada y el resumen lo informa', async () => {
+    const s = setup();
+    const r = await s.resumen.execute({ sedeId: SEDE, fecha: FECHA });
+    expect(r.sincronizacion).toEqual({ activa: false, leidas: 0, nuevas: 0, sinColaborador: 0, error: null });
+    expect(s.marcaciones.importaciones).toHaveLength(0);
+  });
+
+  it('trae al resumen las marcaciones del día de los colaboradores de la sede, sin duplicar al repetir', async () => {
+    const s = setup();
+    s.externas.activo = true;
+    s.externas.filas = [
+      fila('111', `${FECHA} 07:50:00`, 'In'),
+      fila('111', `${FECHA} 17:05:00`, 'Out'),
+      fila('999', `${FECHA} 08:00:00`, 'In'),
+      fila('111', '2026-10-07 07:40:00', 'In'),
+    ];
+    const r1 = await s.resumen.execute({ sedeId: SEDE, fecha: FECHA });
+    expect(r1.sincronizacion).toEqual({ activa: true, leidas: 3, nuevas: 2, sinColaborador: 1, error: null });
+    const ana = r1.resumen.find((x) => x.userId === 10);
+    expect(ana).toMatchObject({ horaEntrada: '07:50:00', horaSalida: '17:05:00' });
+    expect(s.marcaciones.importaciones[0]).toMatchObject({ sedeId: SEDE, importadoPor: null });
+
+    s.externas.filas.push(fila('111', `${FECHA} 18:10:00`, 'Out'));
+    const r2 = await s.resumen.execute({ sedeId: SEDE, fecha: FECHA });
+    expect(r2.sincronizacion).toMatchObject({ leidas: 4, nuevas: 1 });
+    expect(r2.resumen.find((x) => x.userId === 10)?.horaSalida).toBe('18:10:00');
+    const r3 = await s.resumen.execute({ sedeId: SEDE, fecha: FECHA });
+    expect(r3.sincronizacion.nuevas).toBe(0);
+    expect(s.marcaciones.importaciones).toHaveLength(2);
+  });
+
+  it('si la base externa falla, el resumen se entrega igual con el aviso', async () => {
+    const s = setup();
+    s.externas.activo = true;
+    s.externas.error = new Error('connect ECONNREFUSED');
+    const r = await s.resumen.execute({ sedeId: SEDE, fecha: FECHA });
+    expect(r.sincronizacion).toMatchObject({ activa: true, nuevas: 0 });
+    expect(r.sincronizacion.error).toContain('base de datos del reloj');
+    expect(r.resumen.length).toBeGreaterThan(0);
   });
 });
 

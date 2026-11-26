@@ -8,6 +8,7 @@ import {
   AsistenciaPoliticaRepository,
   AsistenciaRegistroRepository,
   AsistenciaResumenRepository,
+  claveMarcacion,
   NuevaImportacion,
   ResumenDiarioData,
 } from '../../domain/ports';
@@ -118,6 +119,18 @@ export class TypeOrmAsistenciaMarcacionRepository extends AsistenciaMarcacionRep
       fechaHora: r.fecha_hora,
       tipoRegistro: r.tipo_registro,
     }));
+  }
+
+  async findClavesBySedeYFecha(sedeId: number, fecha: string): Promise<Set<string>> {
+    const rows: Array<{ identificacion: string | null; fecha_hora: string }> = await this.dataSource.query(
+      `SELECT identificacion, to_char(fecha_hora, 'YYYY-MM-DD HH24:MI:SS') AS fecha_hora
+         FROM asistencia_marcaciones
+        WHERE sede_id = $1
+          AND fecha_hora >= $2::date
+          AND fecha_hora < ($2::date + INTERVAL '1 day')`,
+      [sedeId, fecha],
+    );
+    return new Set(rows.map((r) => claveMarcacion(r.identificacion ?? '', r.fecha_hora)));
   }
 }
 

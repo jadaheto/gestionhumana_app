@@ -51,10 +51,14 @@ export function parsearFechaHora(fechaRaw: string, horaRaw = ''): string | null 
   return null;
 }
 
+/** Valores de "Operación" que reemplazan al tipo de registro original. */
+const TIPOS_CORREGIDOS = ['in', 'out', 'entrada', 'salida'];
+
 /**
  * Convierte una fila (ya separada en celdas) en una marcación, usando las
  * cabeceras normalizadas. Devuelve `null` si faltan identificación, nombre o
- * una fecha/hora interpretable (la fila se descarta, igual que en el legado).
+ * una fecha/hora interpretable (la fila se descarta, igual que en el legado),
+ * o si el reloj la marcó como eliminada/inválida.
  */
 export function mapearFilaMarcacion(celdas: string[], cabeceras: string[]): MarcacionImportada | null {
   const mapa: Record<string, string> = {};
@@ -69,7 +73,13 @@ export function mapearFilaMarcacion(celdas: string[], cabeceras: string[]): Marc
     identificacion = mapa['identificacion'];
   }
   const nombre = mapa['nombre'] ?? '';
-  const tipoRegistro = mapa['tipo_de_registro'] ?? mapa['tipo_registro'] ?? '';
+  const operacion = (mapa['operacion'] ?? '').toLowerCase();
+  const excepcion = normalizarCabecera(mapa['descripcion_de_la_exepcion'] ?? mapa['descripcion_de_la_excepcion'] ?? '');
+  // Marcación anulada en el reloj (Operación "Eliminar" / "Registro inválido"): no cuenta.
+  if (operacion === 'eliminar' || excepcion === 'registro_invalido') return null;
+  // El reloj registra todo como "In"; cuando corrige el sentido lo deja en Operación ("Out").
+  const tipoOriginal = mapa['tipo_de_registro'] ?? mapa['tipo_registro'] ?? '';
+  const tipoRegistro = TIPOS_CORREGIDOS.includes(operacion) ? mapa['operacion'] : tipoOriginal;
   const departamento = mapa['departamento'] ?? '';
   const dispositivoNo = mapa['dispositivo_nro'] ?? mapa['dispositivo_no'] ?? '';
 

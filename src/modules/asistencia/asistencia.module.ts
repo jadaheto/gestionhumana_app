@@ -6,6 +6,7 @@ import { EnviarMemorandosUseCase } from './application/use-cases/enviar-memorand
 import { GetMiHistorialUseCase } from './application/use-cases/get-mi-historial.use-case';
 import { GetResumenDiarioUseCase } from './application/use-cases/get-resumen-diario.use-case';
 import { ImportarMarcacionesUseCase } from './application/use-cases/importar-marcaciones.use-case';
+import { SincronizarMarcacionesExternasUseCase } from './application/use-cases/sincronizar-marcaciones-externas.use-case';
 import { ListSedesAsistenciaUseCase } from './application/use-cases/list-sedes.use-case';
 import { GetPoliticaUseCase, SavePoliticaUseCase } from './application/use-cases/politica.use-cases';
 import {
@@ -15,8 +16,10 @@ import {
   AsistenciaResumenRepository,
   ColaboradoresSedeReader,
   JustificacionReader,
+  MarcacionesExternasReader,
   SedesReader,
 } from './domain/ports';
+import { PgMarcacionesExternasReader } from './infrastructure/persistence/pg-marcaciones-externas.reader';
 import { AsistenciaController } from './infrastructure/http/asistencia.controller';
 import { BufferAsistenciaFileParser } from './infrastructure/parsers/asistencia-file.parser';
 import {
@@ -54,6 +57,7 @@ import {
     ConsolidarResumenDiarioUseCase,
     GetResumenDiarioUseCase,
     ImportarMarcacionesUseCase,
+    SincronizarMarcacionesExternasUseCase,
     EnviarMemorandosUseCase,
     GetPoliticaUseCase,
     SavePoliticaUseCase,
@@ -67,6 +71,7 @@ import {
     { provide: JustificacionReader, useClass: TypeOrmJustificacionReader },
     { provide: SedesReader, useClass: TypeOrmSedesReader },
     { provide: AsistenciaFileParser, useClass: BufferAsistenciaFileParser },
+    { provide: MarcacionesExternasReader, useClass: PgMarcacionesExternasReader },
   ],
 })
 export class AsistenciaModule {}

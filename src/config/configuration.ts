@@ -42,6 +42,24 @@ export interface AppConfig {
   };
   /** Asistente IA "Ask AI": proveedor compatible con OpenAI (DeepSeek). Sin clave el asistente responde 503. */
   asistente: { apiKey: string; model: string; baseUrl: string; timeoutMs: number };
+  /**
+   * Base de datos externa del reloj biométrico (PostgreSQL) con la estructura del reporte
+   * "Asistencia Diaria". Con `host` vacío queda apagada y la asistencia sólo se carga por archivo.
+   */
+  asistenciaDb: {
+    host: string;
+    port: number;
+    name: string;
+    user: string;
+    pass: string;
+    ssl: boolean;
+    schema: string;
+    /** Tabla o vista con las marcaciones. */
+    table: string;
+    /** Columna con la fecha y hora de la marcación. */
+    fechaColumn: string;
+    timeoutMs: number;
+  };
 }
 
 export default (): AppConfig => ({
@@ -93,5 +111,17 @@ export default (): AppConfig => ({
     model: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
     baseUrl: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com',
     timeoutMs: Number(process.env.DEEPSEEK_TIMEOUT_MS ?? 30000),
+  },
+  asistenciaDb: {
+    host: (process.env.ASISTENCIA_DB_HOST ?? '').trim(),
+    port: Number(process.env.ASISTENCIA_DB_PORT ?? 5432),
+    name: process.env.ASISTENCIA_DB_NAME ?? '',
+    user: process.env.ASISTENCIA_DB_USER ?? '',
+    pass: process.env.ASISTENCIA_DB_PASSWORD ?? '',
+    ssl: process.env.ASISTENCIA_DB_SSL === 'true',
+    schema: (process.env.ASISTENCIA_DB_SCHEMA ?? 'public').trim() || 'public',
+    table: (process.env.ASISTENCIA_DB_TABLE ?? 'asistencia_diaria').trim() || 'asistencia_diaria',
+    fechaColumn: (process.env.ASISTENCIA_DB_COLUMNA_FECHA ?? 'fecha_hora').trim() || 'fecha_hora',
+    timeoutMs: Number(process.env.ASISTENCIA_DB_TIMEOUT_MS ?? 8000),
   },
 });

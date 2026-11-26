@@ -65,3 +65,59 @@ describe('mapearFilaMarcacion', () => {
     expect(mapearFilaMarcacion(['1', 'Ana', 'in', '', '', 'ayer', ''], cabeceras)).toBeNull();
   });
 });
+
+describe('reporte "Asistencia Diaria" del reloj', () => {
+  const cabeceras = [
+    'Nro. de serie',
+    'Departamento',
+    'Nro. de usuario',
+    'ID de usuario',
+    'Nombre',
+    'Fecha/Hora',
+    'Tipo de registro',
+    'Operación',
+    'Descripción de la exepción',
+    'Turno',
+    'Código de identificación',
+    'Identificación',
+    'Código de tarea',
+    'Dispositivo Nro.',
+    'Marcado',
+  ];
+  const celdas = (hora: string, operacion: string, excepcion: string) => [
+    '1',
+    'SEDE PRINCIPAL',
+    '1211',
+    '3839033',
+    'Contreras Peña Adolfo',
+    `2026-11-25 ${hora}`,
+    'In',
+    operacion,
+    excepcion,
+    '',
+    '16',
+    'Cara',
+    '0',
+    '3',
+    'False',
+  ];
+
+  it('usa la cédula de "ID de usuario" y conserva el tipo cuando no hay operación', () => {
+    expect(mapearFilaMarcacion(celdas('07:46:12', '', 'Registro normal'), cabeceras)).toMatchObject({
+      identificacion: '3839033',
+      nombre: 'Contreras Peña Adolfo',
+      fechaHora: '2026-11-25 07:46:12',
+      tipoRegistro: 'In',
+      departamento: 'SEDE PRINCIPAL',
+      dispositivoNo: '3',
+    });
+  });
+  it('toma el sentido corregido de "Operación" (Out) y deja el original en otros códigos', () => {
+    expect(mapearFilaMarcacion(celdas('17:02:09', 'Out', 'Tipo de registro inc'), cabeceras)?.tipoRegistro).toBe('Out');
+    expect(mapearFilaMarcacion(celdas('17:02:09', '3', 'Tipo de registro inc'), cabeceras)?.tipoRegistro).toBe('In');
+  });
+  it('descarta las marcaciones eliminadas o inválidas', () => {
+    expect(mapearFilaMarcacion(celdas('12:00:00', 'Eliminar', 'Registro inválido'), cabeceras)).toBeNull();
+    expect(mapearFilaMarcacion(celdas('12:00:00', '', 'Registro inválido'), cabeceras)).toBeNull();
+  });
+});
