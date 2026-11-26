@@ -5,7 +5,9 @@ import { Column, Entity, PrimaryGeneratedColumn, ValueTransformer } from 'typeor
  * extremo (evita desfases de zona horaria; el driver pg las devuelve como Date).
  */
 export const timestampTransformer: ValueTransformer = {
-  to: (value: string | null | undefined): string | null => value ?? null,
+  // `undefined` se deja pasar: así el INSERT usa el DEFAULT de la columna. Convertirlo a
+  // null enviaba NULL explícito y rompía `created_at`/`updated_at` cuando son NOT NULL.
+  to: (value: string | null | undefined): string | null | undefined => value,
   from: (value: Date | string | null): string | null => fechaHoraToString(value),
 };
 
