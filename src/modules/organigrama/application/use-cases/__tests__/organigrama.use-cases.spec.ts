@@ -59,8 +59,25 @@ describe('Casos de uso de Organigrama', () => {
     it('devuelve el árbol de dependencias y el total', async () => {
       const repo = new InMemoryDependenciasRepository();
       repo.filas = [
-        { id: 1, nombre: 'Dirección', padreId: null, orden: 0, responsable: null, totalColaboradores: 2 },
-        { id: 2, nombre: 'TIC', padreId: 1, orden: 0, responsable: null, totalColaboradores: 5 },
+        {
+          id: 1,
+          nombre: 'Dirección',
+          padreId: null,
+          orden: 0,
+          tipo: 'linea',
+          responsable: null,
+          totalColaboradores: 2,
+        },
+        { id: 2, nombre: 'TIC', padreId: 1, orden: 0, tipo: 'linea', responsable: null, totalColaboradores: 5 },
+        {
+          id: 3,
+          nombre: 'Comité de Ética',
+          padreId: 1,
+          orden: 1,
+          tipo: 'comite',
+          responsable: null,
+          totalColaboradores: 0,
+        },
       ];
       const r = await new GetOrganigramaDependenciasUseCase(repo).execute();
       expect(r.configurado).toBe(true);

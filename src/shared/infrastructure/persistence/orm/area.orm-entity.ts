@@ -11,6 +11,8 @@ export class AreaOrmEntity {
   @Column({ type: 'int', nullable: true }) padre_id!: number | null;
   /** Posición entre sus hermanas en el organigrama. */
   @Column({ type: 'int', default: 0 }) orden!: number;
+  /** Cómo se dibuja en el organigrama: linea, asesora, control o comite. */
+  @Column({ type: 'varchar', length: 20, default: 'linea' }) tipo!: string;
   @Column({ type: 'varchar', length: 20, default: 'activo' }) estado!: string;
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }) created_at!: Date;
 }

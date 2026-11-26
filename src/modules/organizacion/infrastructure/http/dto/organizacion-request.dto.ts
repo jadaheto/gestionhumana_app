@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { TIPOS_AREA } from '../../../domain/area';
 
 export class SaveSedeRequestDto {
   @ApiProperty({ maxLength: 150 }) @IsString() @IsNotEmpty() @MaxLength(150) nombre!: string;
@@ -26,6 +27,10 @@ export class SaveAreaRequestDto {
   @IsInt()
   @Min(0)
   orden?: number;
+  @ApiPropertyOptional({ enum: TIPOS_AREA, description: 'Lugar del área en el organigrama' })
+  @IsOptional()
+  @IsIn(TIPOS_AREA)
+  tipo?: string;
   @ApiPropertyOptional({ enum: ['activo', 'inactivo'] }) @IsOptional() @IsIn(['activo', 'inactivo']) estado?: string;
 }
 

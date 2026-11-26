@@ -29,7 +29,7 @@ export class GetJerarquiaUseCase implements UseCase<void, JerarquiaDto> {
   }
 }
 
-/** Organigrama de dependencias: árbol de áreas activas con su responsable. */
+/** Organigrama de dependencias: árbol de áreas activas con su responsable. Los comités no cuentan como dependencia. */
 @Injectable()
 export class GetOrganigramaDependenciasUseCase implements UseCase<void, OrganigramaDependenciasDto> {
   constructor(private readonly dependencias: DependenciasRepository) {}
@@ -37,7 +37,7 @@ export class GetOrganigramaDependenciasUseCase implements UseCase<void, Organigr
     const filas = await this.dependencias.findFilas();
     return {
       configurado: filas.length > 0,
-      totalDependencias: filas.length,
+      totalDependencias: filas.filter((f) => f.tipo !== 'comite').length,
       raices: construirArbolDependencias(filas),
     };
   }

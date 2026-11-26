@@ -16,6 +16,7 @@ export function toAreaDto(a: Area, sedeNombre: string | null = null, padreNombre
     padreId: a.props.padreId,
     padreNombre,
     orden: a.props.orden,
+    tipo: a.props.tipo,
     estado: a.props.estado,
   };
 }
@@ -52,6 +53,7 @@ export class SaveAreaUseCase implements UseCase<SaveAreaInput, AreaDto> {
       responsableId: input.responsableId,
       padreId: padre?.id ?? null,
       orden: input.orden ?? actual?.props.orden ?? 0,
+      tipo: input.tipo ?? actual?.props.tipo,
       estado: input.estado === 'inactivo' ? 'inactivo' : 'activo',
     });
     return toAreaDto(await this.areas.save(area), null, padre?.props.nombre ?? null);

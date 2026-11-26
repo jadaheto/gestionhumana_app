@@ -19,14 +19,17 @@ export interface AreaDto {
   padreId: number | null;
   padreNombre: string | null;
   orden: number;
+  /** linea | asesora | control | comite. */
+  tipo: string;
   estado: string;
 }
-/** `padreId` y `orden` sin enviar (`undefined`) conservan el valor actual al editar. */
+/** `padreId`, `orden` y `tipo` sin enviar (`undefined`) conservan el valor actual al editar. */
 export type SaveAreaInput = Pick<AreaDto, 'nombre' | 'descripcion' | 'sedeId' | 'responsableId'> & {
   id?: number;
   estado?: string;
   padreId?: number | null;
   orden?: number;
+  tipo?: string;
 };
 
 export interface CargoDto {

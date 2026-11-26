@@ -28,6 +28,7 @@ const toArea = (r: AreaOrmEntity): Area =>
     responsableId: r.responsable_id,
     padreId: r.padre_id,
     orden: r.orden,
+    tipo: r.tipo,
     estado: r.estado === 'inactivo' ? 'inactivo' : 'activo',
   });
 
@@ -98,6 +99,7 @@ export class TypeOrmAreaRepository extends AreaRepository {
       responsable_id: p.responsableId,
       padre_id: p.padreId,
       orden: p.orden,
+      tipo: p.tipo,
       estado: p.estado,
     };
     if (p.id) {

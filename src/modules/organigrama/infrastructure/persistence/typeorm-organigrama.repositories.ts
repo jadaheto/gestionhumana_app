@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
-import { FilaDependencia } from '../../domain/dependencias';
+import { FilaDependencia, normalizarTipoDependencia } from '../../domain/dependencias';
 import { ColaboradorDirectorio, FiltrosDirectorio } from '../../domain/directorio';
 import { FilaOrganigrama } from '../../domain/organigrama';
 import {
@@ -71,6 +71,7 @@ interface FilaDependenciaRaw {
   nombre: string;
   padre_id: number | null;
   orden: number | null;
+  tipo: string | null;
   user_id: number | null;
   first_name: string | null;
   last_name: string | null;
@@ -88,7 +89,7 @@ export class TypeOrmDependenciasRepository extends DependenciasRepository {
 
   async findFilas(): Promise<FilaDependencia[]> {
     const rows: FilaDependenciaRaw[] = await this.dataSource.query(
-      `SELECT a.id, a.nombre, a.padre_id, a.orden,
+      `SELECT a.id, a.nombre, a.padre_id, a.orden, a.tipo,
               u.id AS user_id, u.first_name, u.last_name, u.profile_image,
               COALESCE(c.nombre, u.designation) AS cargo,
               (SELECT COUNT(*) FROM users x
@@ -104,6 +105,7 @@ export class TypeOrmDependenciasRepository extends DependenciasRepository {
       nombre: r.nombre,
       padreId: r.padre_id === null ? null : Number(r.padre_id),
       orden: Number(r.orden ?? 0),
+      tipo: normalizarTipoDependencia(r.tipo),
       responsable:
         r.user_id === null
           ? null

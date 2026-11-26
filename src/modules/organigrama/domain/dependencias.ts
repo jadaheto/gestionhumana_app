@@ -1,3 +1,9 @@
+/** Cómo se dibuja la dependencia respecto a su superior (ver `TipoArea`). */
+export type TipoDependencia = 'linea' | 'asesora' | 'control' | 'comite';
+
+export const normalizarTipoDependencia = (valor: unknown): TipoDependencia =>
+  valor === 'asesora' || valor === 'control' || valor === 'comite' ? valor : 'linea';
+
 /** Responsable (líder) de una dependencia. */
 export interface ResponsableDependencia {
   userId: number;
@@ -12,6 +18,7 @@ export interface FilaDependencia {
   nombre: string;
   padreId: number | null;
   orden: number;
+  tipo: TipoDependencia;
   responsable: ResponsableDependencia | null;
   totalColaboradores: number;
 }
@@ -22,6 +29,7 @@ export interface NodoDependencia {
   nombre: string;
   /** Profundidad en el árbol (0 = raíz). */
   nivel: number;
+  tipo: TipoDependencia;
   responsable: ResponsableDependencia | null;
   totalColaboradores: number;
   hijas: NodoDependencia[];
@@ -40,6 +48,7 @@ export function construirArbolDependencias(filas: FilaDependencia[]): NodoDepend
       id: f.id,
       nombre: f.nombre,
       nivel: 0,
+      tipo: f.tipo,
       responsable: f.responsable,
       totalColaboradores: f.totalColaboradores,
       hijas: [],

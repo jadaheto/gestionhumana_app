@@ -5,6 +5,7 @@ const fila = (id: number, nombre: string, padreId: number | null, orden = 0): Fi
   nombre,
   padreId,
   orden,
+  tipo: 'linea',
   responsable: null,
   totalColaboradores: 0,
 });

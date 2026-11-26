@@ -93,6 +93,13 @@ describe('Casos de uso de Organización', () => {
 
       const raiz = await save.execute({ ...base, id: tic.id, nombre: 'Tecnología', padreId: null });
       expect(raiz.padreId).toBeNull();
+      expect(raiz.tipo).toBe('linea');
+
+      const comite = await save.execute({ ...base, id: tic.id, nombre: 'Comité', tipo: 'comite' });
+      expect(comite.tipo).toBe('comite');
+      // Sin enviar el tipo se conserva; un valor desconocido vuelve a `linea`.
+      expect((await save.execute({ ...base, id: tic.id, nombre: 'Comité' })).tipo).toBe('comite');
+      expect((await save.execute({ ...base, id: tic.id, nombre: 'Comité', tipo: 'otro' })).tipo).toBe('linea');
 
       const listado = await new ListAreasUseCase(areas).execute({});
       expect(listado.find((a) => a.id === direccion.id)?.padreNombre).toBeNull();
