@@ -1,6 +1,6 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { FileStorage } from '../../../../shared/application/ports/file-storage.port';
@@ -134,6 +134,7 @@ export class TypeOrmContratoReader extends ContratoReader {
 @Injectable()
 export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader {
   static readonly DEFAULT_JEFE = 'Jefe Departamento Gestión Humana';
+  private readonly logger = new Logger(AppSettingsCertificadoConfigReader.name);
 
   constructor(
     @InjectRepository(AppSettingOrmEntity) private readonly settings: Repository<AppSettingOrmEntity>,
@@ -162,8 +163,14 @@ export class AppSettingsCertificadoConfigReader extends CertificadoConfigReader 
     const relativa = ruta.replace(/^\/+/, '').replace(/^uploads\//, '');
     if (relativa.includes('..')) return null;
     try {
-      return (await this.storage.exists(relativa)) ? this.storage.absolutePath(relativa) : null;
-    } catch {
+      if (await this.storage.exists(relativa)) return this.storage.absolutePath(relativa);
+      // Configurada pero sin archivo: suele ser un despliegue que no conservó la carpeta de uploads.
+      this.logger.warn(
+        `La imagen configurada ${relativa} no existe en el almacenamiento; el certificado sale sin ella.`,
+      );
+      return null;
+    } catch (e) {
+      this.logger.warn(`No se pudo resolver la imagen ${relativa}: ${(e as Error).message}`);
       return null;
     }
   }
